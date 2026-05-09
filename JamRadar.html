@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"/>
+<title>JamRadar — Local action-sport radar</title>
+
+<meta name="description" content="Local action-sport radar — rail jams, mountain events, indoor training, skate, gear deals."/>
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest"/>
+<meta name="theme-color" content="#0a0d12"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="JamRadar"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<link rel="icon" type="image/svg+xml" href="icon.svg"/>
+<link rel="apple-touch-icon" href="icon.svg"/>
+<link rel="apple-touch-icon" sizes="180x180" href="icon.svg"/>
+<link rel="mask-icon" href="icon.svg" color="#dde64d"/>
+
+<!-- OpenGraph / share previews -->
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="JamRadar"/>
+<meta property="og:description" content="Local action-sport radar — rail jams, mountain events, indoor training, skate, gear deals."/>
+<meta property="og:image" content="icon.svg"/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="JamRadar"/>
+<meta name="twitter:description" content="Local action-sport radar."/>
+<meta name="twitter:image" content="icon.svg"/>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+<link rel="stylesheet" href="styles.css"/>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Supabase JS client. Initialised in supabase-config.jsx; if no project URL/key
+     is set, the app silently falls back to anonymous-only / localStorage. -->
+<script src="https://unpkg.com/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="config.jsx"></script>
+<script type="text/babel" src="data.jsx"></script>
+<script type="text/babel" src="supabase-config.jsx"></script>
+<script type="text/babel" src="store.jsx"></script>
+<script type="text/babel" src="ui.jsx"></script>
+<script type="text/babel" src="screens-onboarding.jsx"></script>
+<script type="text/babel" src="screens-main.jsx"></script>
+<script type="text/babel" src="screens-detail.jsx"></script>
+<script type="text/babel" src="screens-org-profile.jsx"></script>
+<script type="text/babel" src="screens-rider-profile.jsx"></script>
+<script type="text/babel" src="screens-riders.jsx"></script>
+<script type="text/babel" src="screens-admin.jsx"></script>
+<script type="text/babel" src="screens-auth.jsx"></script>
+<script type="text/babel" src="app.jsx"></script>
+
+<script>
+  // Register the service worker for offline + installability.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js')
+        .catch((err) => console.warn('SW register failed:', err));
+    });
+  }
+</script>
+</body>
+</html>

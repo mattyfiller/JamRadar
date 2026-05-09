@@ -1,0 +1,21 @@
+{
+  "name": "jamradar-ingest",
+  "version": "1.0.0",
+  "description": "Daily event scraping pipeline for JamRadar",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "ingest": "node index.js",
+    "ingest:dry": "DRY_RUN=1 node index.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "cheerio": "^1.0.0",
+    "node-ical": "^0.20.1",
+    "playwright": "^1.59.1",
+    "ws": "^8.20.0"
+  }
+}

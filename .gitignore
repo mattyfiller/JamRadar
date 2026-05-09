@@ -1,0 +1,38 @@
+# Dependency directories
+node_modules/
+ingest/node_modules/
+
+# Local Claude Code state
+.claude/
+
+# OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local env / secrets — never commit
+.env
+.env.local
+.env.*.local
+*.pem
+secrets/
+
+# Build output
+dist/
+build/
+
+# Temp / probe scripts
+*.tmp
+.tmp_*
+ingest/probe_*.mjs
+ingest/find_*.mjs

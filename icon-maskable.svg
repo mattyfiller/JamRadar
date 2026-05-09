@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Maskable: keep all visual content within the 80% safe zone (centred 410px square). -->
+  <rect width="512" height="512" fill="#0a0d12"/>
+  <g fill="none" stroke="#dde64d" transform="translate(256 256)">
+    <circle r="160" stroke-width="5" stroke-opacity="0.25"/>
+    <circle r="112" stroke-width="5" stroke-opacity="0.45"/>
+    <circle r="64"  stroke-width="5" stroke-opacity="0.7"/>
+  </g>
+  <line x1="256" y1="256" x2="368" y2="170" stroke="#dde64d" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="256" cy="256" r="16" fill="#dde64d"/>
+</svg>

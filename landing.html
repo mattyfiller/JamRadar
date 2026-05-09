@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>JamRadar — Local action-sport radar</title>
+<meta name="description" content="Discover ski, snowboard, rail jam, mountain, indoor training, skate, and gear events near you. Free during beta."/>
+
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+
+<link rel="manifest" href="manifest.webmanifest"/>
+<meta name="theme-color" content="#0a0d12"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="JamRadar"/>
+<link rel="icon" type="image/svg+xml" href="icon.svg"/>
+<link rel="apple-touch-icon" href="icon.svg"/>
+
+<meta property="og:type" content="website"/>
+<meta property="og:title" content="JamRadar"/>
+<meta property="og:description" content="Local action-sport radar — rail jams, mountain events, indoor training, skate, gear deals."/>
+<meta property="og:image" content="icon.svg"/>
+<meta name="twitter:card" content="summary"/>
+<meta name="twitter:title" content="JamRadar"/>
+<meta name="twitter:description" content="Local action-sport radar."/>
+<meta name="twitter:image" content="icon.svg"/>
+
+<style>
+  :root {
+    --bg-deep:    oklch(0.16 0.018 240);
+    --bg-base:    oklch(0.20 0.018 240);
+    --bg-surface: oklch(0.235 0.016 240);
+    --bg-surface-2: oklch(0.275 0.014 240);
+    --line:       oklch(0.32 0.014 240);
+    --line-soft:  oklch(0.27 0.013 240);
+    --fg:         oklch(0.97 0.005 90);
+    --fg-muted:   oklch(0.72 0.012 240);
+    --fg-dim:     oklch(0.55 0.014 240);
+    --accent:     oklch(0.88 0.18 100);
+    --accent-soft: oklch(0.88 0.18 100 / 0.15);
+    --accent-ink: oklch(0.20 0.04 100);
+    --hot:        oklch(0.72 0.20 35);
+    --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+    --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+    --font-body:    "Space Grotesk", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg-deep);
+    color: var(--fg);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.6;
+  }
+  .mono { font-family: var(--font-mono); }
+
+  .nav {
+    position: sticky; top: 0; z-index: 10;
+    padding: 16px 24px;
+    background: oklch(0.16 0.018 240 / 0.85);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line-soft);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav-brand {
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--font-display); font-weight: 700; font-size: 18px;
+    letter-spacing: -0.02em;
+  }
+  .nav-brand img { width: 28px; height: 28px; }
+  .nav a.cta {
+    padding: 10px 18px; border-radius: 999px;
+    background: var(--accent); color: var(--accent-ink);
+    text-decoration: none; font-weight: 600; font-size: 14px;
+    font-family: var(--font-display);
+  }
+
+  .hero {
+    padding: 80px 24px 60px;
+    max-width: 980px; margin: 0 auto;
+    text-align: center;
+  }
+  .hero .kicker {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 12px; letter-spacing: 0.18em;
+    text-transform: uppercase; color: var(--accent);
+    margin-bottom: 18px;
+  }
+  .hero h1 {
+    margin: 0 0 20px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(40px, 8vw, 72px);
+    line-height: 0.98;
+    letter-spacing: -0.035em;
+  }
+  .hero h1 em {
+    font-style: normal; color: var(--accent);
+  }
+  .hero p {
+    margin: 0 auto 32px;
+    max-width: 560px;
+    font-size: 18px;
+    color: var(--fg-muted);
+  }
+  .hero .ctas {
+    display: inline-flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+  }
+  .btn {
+    appearance: none; cursor: pointer;
+    padding: 14px 26px; border-radius: 999px;
+    font-family: var(--font-display); font-weight: 600; font-size: 15px;
+    text-decoration: none;
+    border: 1px solid transparent;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-primary { background: var(--accent); color: var(--accent-ink); }
+  .btn-primary:hover { filter: brightness(1.05); }
+  .btn-ghost {
+    background: transparent; color: var(--fg);
+    border-color: var(--line);
+  }
+  .btn-ghost:hover { background: var(--bg-surface); }
+
+  .radar-mark {
+    width: 96px; height: 96px; position: relative;
+    margin: 0 auto 32px;
+  }
+  .radar-mark .ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 1px solid oklch(0.88 0.18 100 / 0.3);
+  }
+  .radar-mark .ring.r2 { inset: 18px; }
+  .radar-mark .ring.r3 { inset: 36px; }
+  .radar-mark .dot {
+    position: absolute; left: 50%; top: 50%;
+    width: 14px; height: 14px; margin-left: -7px; margin-top: -7px;
+    background: var(--accent); border-radius: 50%;
+    box-shadow: 0 0 0 6px oklch(0.88 0.18 100 / 0.2), 0 0 22px var(--accent);
+    animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(0.85); }
+  }
+
+  /* Section */
+  section {
+    padding: 64px 24px;
+    max-width: 980px; margin: 0 auto;
+  }
+  section h2 {
+    margin: 0 0 14px;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(28px, 5vw, 40px);
+    letter-spacing: -0.025em; line-height: 1.1;
+  }
+  section .lede {
+    color: var(--fg-muted); font-size: 17px; max-width: 640px;
+    margin-bottom: 36px;
+  }
+
+  /* Features grid */
+  .features {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;
+  }
+  .feature {
+    padding: 22px 22px;
+    background: var(--bg-surface);
+    border: 1px solid var(--line-soft);
+    border-radius: 16px;
+  }
+  .feature .ico {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 36px; height: 36px; border-radius: 8px;
+    background: var(--accent-soft); color: var(--accent);
+    margin-bottom: 14px;
+  }
+  .feature h3 {
+    margin: 0 0 6px; font-size: 17px; font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .feature p {
+    margin: 0; color: var(--fg-muted); font-size: 14px; line-height: 1.55;
+  }
+
+  /* For-who row */
+  .for-who {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px; margin-top: 20px;
+  }
+  .for-who .pill {
+    padding: 14px 18px; border-radius: 12px;
+    background: var(--bg-surface);
+    border: 1px solid var(--line-soft);
+    font-size: 14px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .for-who .pill .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* Install steps */
+  .steps {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  }
+  @media (max-width: 640px) {
+    .steps { grid-template-columns: 1fr; }
+  }
+  .step {
+    padding: 22px;
+    background: var(--bg-surface);
+    border: 1px solid var(--line-soft);
+    border-radius: 16px;
+  }
+  .step .label {
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent);
+  }
+  .step h3 {
+    margin: 8px 0 10px; font-size: 18px; font-weight: 600; letter-spacing: -0.01em;
+  }
+  .step ol {
+    margin: 0; padding-left: 18px;
+    color: var(--fg-muted); font-size: 14px; line-height: 1.65;
+  }
+
+  /* FAQ */
+  .faq details {
+    padding: 16px 18px;
+    background: var(--bg-surface);
+    border: 1px solid var(--line-soft);
+    border-radius: 12px;
+    margin-bottom: 8px;
+  }
+  .faq summary {
+    cursor: pointer;
+    font-weight: 600; font-size: 15px;
+    list-style: none;
+    display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after {
+    content: '+';
+    color: var(--accent); font-size: 22px; line-height: 1; font-weight: 400;
+  }
+  .faq details[open] summary::after { content: '−'; }
+  .faq details p {
+    margin: 12px 0 0; color: var(--fg-muted); font-size: 14px; line-height: 1.65;
+  }
+
+  /* Footer */
+  footer {
+    padding: 48px 24px 60px;
+    border-top: 1px solid var(--line-soft);
+    text-align: center;
+    color: var(--fg-dim);
+    font-size: 13px;
+    font-family: var(--font-mono);
+    letter-spacing: 0.04em;
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--hot);
+    background: oklch(0.72 0.20 35 / 0.18);
+    border: 1px solid oklch(0.72 0.20 35 / 0.4);
+    padding: 4px 10px; border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a class="nav-brand" href="/">
+    <img src="icon.svg" alt=""/>
+    JamRadar
+  </a>
+  <a class="cta" href="/JamRadar.html">Open app →</a>
+</nav>
+
+<header class="hero">
+  <div class="radar-mark">
+    <div class="ring"></div>
+    <div class="ring r2"></div>
+    <div class="ring r3"></div>
+    <div class="dot"></div>
+  </div>
+  <span class="kicker">JamRadar · v1 beta</span>
+  <h1>Local <em>action-sport</em><br/>radar.</h1>
+  <p>
+    Rail jams, mountain events, indoor training, skate jams, gear deals.
+    One feed, tuned to where you ride and what you ride.
+  </p>
+  <div class="ctas">
+    <a class="btn btn-primary" href="/JamRadar.html">Open the app</a>
+    <a class="btn btn-ghost" href="#install">How to install</a>
+  </div>
+  <p style="margin-top: 28px; font-size: 13px; color: var(--fg-dim);">
+    <span class="badge">Beta</span>
+    &nbsp; Free during launch · No account required to browse
+  </p>
+</header>
+
+<section>
+  <h2>Stop hunting through twelve Instagram accounts.</h2>
+  <p class="lede">
+    Event info is scattered across resort websites, mountain park crews, ski shops, brand IGs, posters, and group chats. JamRadar pulls it into one personalized feed — and only pings you about events you'd actually go to.
+  </p>
+
+  <div class="features">
+    <div class="feature">
+      <span class="ico">⚲</span>
+      <h3>Set your radius</h3>
+      <p>Pick a 25, 50, 100, 250 km radar — or set custom. Only see events within range.</p>
+    </div>
+    <div class="feature">
+      <span class="ico">⌧</span>
+      <h3>Pick your sports</h3>
+      <p>Snowboard, ski, skate, MTB, BMX, indoor training. Mix and match. Change anytime.</p>
+    </div>
+    <div class="feature">
+      <span class="ico">⚑</span>
+      <h3>Smart notifications</h3>
+      <p>Instant alerts, daily digest, weekly digest, or only deadlines. You decide.</p>
+    </div>
+    <div class="feature">
+      <span class="ico">⌖</span>
+      <h3>Real map</h3>
+      <p>Every event pinned at its real coordinates. See your radius. Tap a pin, get the deets.</p>
+    </div>
+    <div class="feature">
+      <span class="ico">★</span>
+      <h3>Save what matters</h3>
+      <p>Bookmark events. Mark "I'm going." Export to your phone calendar. Get reminders.</p>
+    </div>
+    <div class="feature">
+      <span class="ico">$</span>
+      <h3>Gear deals</h3>
+      <p>Local shop deals, affiliate links, sponsored placements — filtered by the sports you ride.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Built for everyone in the lift line.</h2>
+  <p class="lede">
+    JamRadar isn't just for park kids. It's the discovery layer for action-sport culture — riders, organizers, mountains, indoor facilities, shops, brands.
+  </p>
+
+  <div class="for-who">
+    <div class="pill"><span class="dot"></span>Skiers + snowboarders</div>
+    <div class="pill"><span class="dot"></span>Skate + park rats</div>
+    <div class="pill"><span class="dot"></span>Indoor training crews</div>
+    <div class="pill"><span class="dot"></span>Mountain park staff</div>
+    <div class="pill"><span class="dot"></span>Ski + skate shops</div>
+    <div class="pill"><span class="dot"></span>Event organizers</div>
+    <div class="pill"><span class="dot"></span>Brands + sponsors</div>
+    <div class="pill"><span class="dot"></span>Off-season summer riders</div>
+  </div>
+</section>
+
+<section id="install">
+  <h2>Install in 30 seconds.</h2>
+  <p class="lede">
+    JamRadar runs as a Progressive Web App — no App Store needed. Add it to your home screen and it works exactly like a native app, including offline.
+  </p>
+
+  <div class="steps">
+    <div class="step">
+      <span class="label">iPhone</span>
+      <h3>Safari</h3>
+      <ol>
+        <li>Open the app in <b>Safari</b> (not Chrome)</li>
+        <li>Tap the <b>Share</b> button (square + arrow)</li>
+        <li>Scroll to <b>Add to Home Screen</b></li>
+        <li>Tap <b>Add</b></li>
+      </ol>
+    </div>
+    <div class="step">
+      <span class="label">Android</span>
+      <h3>Chrome</h3>
+      <ol>
+        <li>Open the app in <b>Chrome</b></li>
+        <li>You'll see <b>Install JamRadar?</b> banner</li>
+        <li>Or menu → <b>Install app</b></li>
+        <li>Tap and you're done</li>
+      </ol>
+    </div>
+    <div class="step">
+      <span class="label">Windows / Mac</span>
+      <h3>Edge or Chrome</h3>
+      <ol>
+        <li>Open in Edge or Chrome</li>
+        <li>Click the install icon in the address bar</li>
+        <li>Or menu → <b>Install JamRadar</b></li>
+        <li>Get a taskbar / Dock icon</li>
+      </ol>
+    </div>
+    <div class="step">
+      <span class="label">Just want to peek?</span>
+      <h3>No install</h3>
+      <ol>
+        <li>The web version works fine in any browser</li>
+        <li>Just <a href="/JamRadar.html" style="color: var(--accent); text-decoration: none;">open the app</a></li>
+        <li>You can install later from Profile → Get the app</li>
+        <li>(Or never. Up to you.)</li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<section class="faq">
+  <h2>FAQ</h2>
+  <p class="lede">
+    Quick answers. Got more questions? <a data-jr="contact-email" href="#" style="color: var(--accent); text-decoration: none;">Email me</a>.
+  </p>
+
+  <details>
+    <summary>Is this free?</summary>
+    <p>Yes — completely free during beta. We may add premium features later for organizers (featured listings, analytics) but rider browsing will always be free.</p>
+  </details>
+  <details>
+    <summary>Why do I need to set my city and radius?</summary>
+    <p>So we only show you events you can actually get to. No wasted notifications about a rail jam in a different country.</p>
+  </details>
+  <details>
+    <summary>Where do the events come from?</summary>
+    <p>Right now: hand-curated weekly from major mountains, indoor facilities, and shops in our launch region. Soon: an automated ingest pipeline pulling from Eventbrite, iCal feeds, and resort calendars. Organizers can also post their events directly through the app.</p>
+  </details>
+  <details>
+    <summary>Why not just check Instagram?</summary>
+    <p>You already do — and you're missing things. JamRadar is the inbox for events you'd otherwise scroll past. Plus: no algorithm, no engagement bait, no feed fatigue. Just events near you.</p>
+  </details>
+  <details>
+    <summary>Can I post my shop or facility's events?</summary>
+    <p>Yes. After installing, go to <b>Profile → Switch to organizer mode</b>. You'll get a dashboard for posting, editing, and tracking analytics on your events. Verified-organizer status is free during pilot — DM us once your first event is live.</p>
+  </details>
+  <details>
+    <summary>What about used gear / a marketplace?</summary>
+    <p>Coming in Phase 2. Right now JamRadar handles new gear deals from shops and brands; peer-to-peer used gear sales are next on the roadmap once we have a critical mass of riders. Tell us if you'd use it.</p>
+  </details>
+  <details>
+    <summary>Why not in the App Store / Play Store?</summary>
+    <p>We're starting as a PWA — installs from the browser, works on every platform with one codebase. Native store listings are coming once the beta is solid. The good news: PWAs feel and work like native apps — push notifications, offline, home screen icon, fullscreen.</p>
+  </details>
+  <details>
+    <summary>Where do you operate?</summary>
+    <p>North America first. Ontario, Quebec, and the Banff trio (Sunshine, Lake Louise, Norquay) are seeded for launch. Other regions come online as riders sign up there.</p>
+  </details>
+</section>
+
+<footer>
+  JamRadar · made for riders, made local · v1 beta · <a href="/JamRadar.html">open the app →</a>
+</footer>
+
+<script>
+  // Pick up the deploy-time config (same file the app reads). If CONTACT_EMAIL is
+  // unset, hide the "Email me" link instead of leaving a dead mailto.
+  fetch('config.jsx').then(r => r.text()).then(src => {
+    const m = src.match(/CONTACT_EMAIL\s*:\s*['"]([^'"]*)['"]/);
+    const email = m && m[1] ? m[1] : '';
+    document.querySelectorAll('a[data-jr="contact-email"]').forEach((a) => {
+      if (email) {
+        a.href = 'mailto:' + email;
+      } else {
+        // Replace the inline link with plain text so the FAQ still reads.
+        const span = document.createElement('span');
+        span.textContent = 'reach out';
+        span.style.color = 'var(--fg-dim)';
+        a.replaceWith(span);
+      }
+    });
+  }).catch(() => {});
+
+  // Register the same service worker the app uses, so the landing page is also offline-cached.
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    });
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,46 @@
+{
+  "name": "JamRadar",
+  "short_name": "JamRadar",
+  "description": "Local action-sport radar — discover ski, snowboard, rail jam, mountain, indoor training, skate, and gear events near you.",
+  "lang": "en",
+  "dir": "ltr",
+  "start_url": "/JamRadar.html",
+  "scope": "/",
+  "id": "/JamRadar.html",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait",
+  "background_color": "#0a0d12",
+  "theme_color": "#0a0d12",
+  "categories": ["sports", "lifestyle", "navigation", "events"],
+  "prefer_related_applications": false,
+  "icons": [
+    { "src": "icon.svg",          "sizes": "any",     "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-maskable.svg", "sizes": "any",     "type": "image/svg+xml", "purpose": "maskable" },
+    { "src": "icon.svg",          "sizes": "192x192", "type": "image/svg+xml" },
+    { "src": "icon.svg",          "sizes": "512x512", "type": "image/svg+xml" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Discover",
+      "short_name": "Discover",
+      "description": "On-the-radar events near you",
+      "url": "/JamRadar.html#discover",
+      "icons": [{ "src": "icon.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Map",
+      "short_name": "Map",
+      "description": "Events on the map",
+      "url": "/JamRadar.html#map",
+      "icons": [{ "src": "icon.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Saved",
+      "short_name": "Saved",
+      "description": "Your saved events",
+      "url": "/JamRadar.html#saved",
+      "icons": [{ "src": "icon.svg", "sizes": "96x96", "type": "image/svg+xml" }]
+    }
+  ]
+}

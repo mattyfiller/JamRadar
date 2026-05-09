@@ -1,0 +1,55 @@
+# JamRadar — Netlify config
+# No build step (Babel runs in the browser); we just need the right cache headers
+# so the service worker can pick up updates and PWA installability behaves.
+
+[build]
+  publish = "."
+
+# The service worker controls what's cached on every user's device. If it's
+# itself cached aggressively, an installed PWA will be stuck on an old version
+# forever. Always revalidate.
+[[headers]]
+  for = "/service-worker.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Service-Worker-Allowed = "/"
+
+# The manifest can change (icon, theme color, name). Revalidate.
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Content-Type = "application/manifest+json"
+
+# JSX files are effectively source for this prototype (no bundler / no
+# content hash), so we revalidate every time. The SW still caches them
+# locally for offline + instant repeat loads.
+[[headers]]
+  for = "/*.jsx"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+# HTML revalidation — same reason as JSX.
+[[headers]]
+  for = "/JamRadar.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+# Icons rarely change. Cache for a year — replace the URL if you redesign.
+[[headers]]
+  for = "/icon*.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+# Public marketing page lives at the root; the actual app stays at /JamRadar.html
+# so existing PWA installs (start_url=/JamRadar.html) keep working unchanged.
+[[redirects]]
+  from = "/"
+  to = "/landing.html"
+  status = 200
+
+# /app is a friendly alias people will guess; route it to the real app entry.
+[[redirects]]
+  from = "/app"
+  to = "/JamRadar.html"
+  status = 200

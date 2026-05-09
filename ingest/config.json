@@ -1,0 +1,155 @@
+{
+  "// region_focus": "Comma-separated city/region keywords used by adapters that filter by location.",
+  "region_focus": ["United States", "Canada"],
+
+  "// eventbrite": "Free Eventbrite Public API. Set EVENTBRITE_TOKEN in env. Categories: 108=Sports & Fitness. Region list covers all 10 Canadian provinces (capital + key metros) and all 50 US states (largest action-sport metro per region). Keep keywords short — total calls = regions × keywords with 1s sleep, which has to fit inside the GitHub Actions 30-min timeout AND Eventbrite's 1000-calls/hour quota.",
+  "eventbrite": {
+    "enabled": true,
+    "categories": ["108"],
+    "keywords": ["snowboard", "ski", "skate", "rail jam"],
+    "regions": [
+      { "city": "Toronto",       "lat": 43.6532,  "lon": -79.3832,   "within": "150km" },
+      { "city": "Ottawa",        "lat": 45.4215,  "lon": -75.6972,   "within": "150km" },
+      { "city": "Montreal",      "lat": 45.5019,  "lon": -73.5674,   "within": "150km" },
+      { "city": "Quebec City",   "lat": 46.8139,  "lon": -71.2080,   "within": "150km" },
+      { "city": "Halifax",       "lat": 44.6488,  "lon": -63.5752,   "within": "150km" },
+      { "city": "Fredericton",   "lat": 45.9636,  "lon": -66.6431,   "within": "150km" },
+      { "city": "Charlottetown", "lat": 46.2382,  "lon": -63.1311,   "within": "150km" },
+      { "city": "St. John's",    "lat": 47.5615,  "lon": -52.7126,   "within": "150km" },
+      { "city": "Winnipeg",      "lat": 49.8951,  "lon": -97.1384,   "within": "150km" },
+      { "city": "Saskatoon",     "lat": 52.1332,  "lon": -106.6700,  "within": "150km" },
+      { "city": "Calgary",       "lat": 51.0447,  "lon": -114.0719,  "within": "200km" },
+      { "city": "Edmonton",      "lat": 53.5461,  "lon": -113.4938,  "within": "150km" },
+      { "city": "Vancouver",     "lat": 49.2827,  "lon": -123.1207,  "within": "200km" },
+      { "city": "Victoria",      "lat": 48.4284,  "lon": -123.3656,  "within": "100km" },
+
+      { "city": "Seattle",       "lat": 47.6062,  "lon": -122.3321,  "within": "150km" },
+      { "city": "Portland OR",   "lat": 45.5152,  "lon": -122.6784,  "within": "150km" },
+      { "city": "San Francisco", "lat": 37.7749,  "lon": -122.4194,  "within": "150km" },
+      { "city": "Lake Tahoe",    "lat": 39.0968,  "lon": -120.0324,  "within": "100km" },
+      { "city": "Los Angeles",   "lat": 34.0522,  "lon": -118.2437,  "within": "150km" },
+      { "city": "San Diego",     "lat": 32.7157,  "lon": -117.1611,  "within": "100km" },
+      { "city": "Reno",          "lat": 39.5296,  "lon": -119.8138,  "within": "100km" },
+      { "city": "Las Vegas",     "lat": 36.1699,  "lon": -115.1398,  "within": "150km" },
+      { "city": "Boise",         "lat": 43.6150,  "lon": -116.2023,  "within": "150km" },
+      { "city": "Bozeman",       "lat": 45.6794,  "lon": -111.0448,  "within": "200km" },
+      { "city": "Jackson WY",    "lat": 43.4799,  "lon": -110.7624,  "within": "100km" },
+      { "city": "Salt Lake City","lat": 40.7608,  "lon": -111.8910,  "within": "150km" },
+      { "city": "Denver",        "lat": 39.7392,  "lon": -104.9903,  "within": "200km" },
+      { "city": "Aspen",         "lat": 39.1911,  "lon": -106.8175,  "within": "100km" },
+      { "city": "Albuquerque",   "lat": 35.0844,  "lon": -106.6504,  "within": "150km" },
+      { "city": "Phoenix",       "lat": 33.4484,  "lon": -112.0740,  "within": "150km" },
+      { "city": "Honolulu",      "lat": 21.3069,  "lon": -157.8583,  "within": "100km" },
+      { "city": "Anchorage",     "lat": 61.2181,  "lon": -149.9003,  "within": "150km" },
+      { "city": "Minneapolis",   "lat": 44.9778,  "lon": -93.2650,   "within": "150km" },
+      { "city": "Madison",       "lat": 43.0731,  "lon": -89.4012,   "within": "150km" },
+      { "city": "Chicago",       "lat": 41.8781,  "lon": -87.6298,   "within": "200km" },
+      { "city": "Detroit",       "lat": 42.3314,  "lon": -83.0458,   "within": "150km" },
+      { "city": "Indianapolis",  "lat": 39.7684,  "lon": -86.1581,   "within": "150km" },
+      { "city": "Cleveland",     "lat": 41.4993,  "lon": -81.6944,   "within": "150km" },
+      { "city": "Pittsburgh",    "lat": 40.4406,  "lon": -79.9959,   "within": "150km" },
+      { "city": "Philadelphia",  "lat": 39.9526,  "lon": -75.1652,   "within": "150km" },
+      { "city": "New York",      "lat": 40.7128,  "lon": -74.0060,   "within": "100km" },
+      { "city": "Boston",        "lat": 42.3601,  "lon": -71.0589,   "within": "150km" },
+      { "city": "Burlington VT", "lat": 44.4759,  "lon": -73.2121,   "within": "100km" },
+      { "city": "Manchester NH", "lat": 42.9956,  "lon": -71.4548,   "within": "100km" },
+      { "city": "Portland ME",   "lat": 43.6591,  "lon": -70.2568,   "within": "150km" },
+      { "city": "Asheville",     "lat": 35.5951,  "lon": -82.5515,   "within": "150km" },
+      { "city": "Atlanta",       "lat": 33.7490,  "lon": -84.3880,   "within": "150km" },
+      { "city": "Nashville",     "lat": 36.1627,  "lon": -86.7816,   "within": "150km" },
+      { "city": "Charlotte",     "lat": 35.2271,  "lon": -80.8431,   "within": "150km" },
+      { "city": "Miami",         "lat": 25.7617,  "lon": -80.1918,   "within": "150km" },
+      { "city": "Dallas",        "lat": 32.7767,  "lon": -96.7970,   "within": "200km" },
+      { "city": "Austin",        "lat": 30.2672,  "lon": -97.7431,   "within": "150km" },
+      { "city": "Houston",       "lat": 29.7604,  "lon": -95.3698,   "within": "150km" },
+      { "city": "Kansas City",   "lat": 39.0997,  "lon": -94.5786,   "within": "150km" },
+      { "city": "St. Louis",     "lat": 38.6270,  "lon": -90.1994,   "within": "150km" },
+      { "city": "Washington DC", "lat": 38.9072,  "lon": -77.0369,   "within": "100km" }
+    ]
+  },
+
+  "// ical": "Generic .ics calendar feeds. Add resort URLs as you find them.",
+  "ical": {
+    "enabled": true,
+    "feeds": []
+  },
+
+  "// reddit": "Public Reddit JSON. Scans regional/sport subs for keyword posts. Expanded NA-wide for broad event coverage.",
+  "reddit": {
+    "enabled": true,
+    "subreddits": [
+      "snowboard", "snowboarding", "skiing", "SkiBum", "skitouring", "backcountry",
+      "skateboarding", "skateparks",
+      "MTB", "MountainBiking", "bmx", "BMXracing",
+      "Whistler", "Vancouver", "LakeTahoe", "Colorado", "Vermont",
+      "BurtonSnowboards", "Killington", "Aspen"
+    ],
+    "keywords":   ["jam", "rail", "comp", "demo", "session", "throwdown", "rail jam", "park comp", "banked slalom", "skate jam", "showdown", "qualifier"]
+  },
+
+  "// jsonld": "Universal Schema.org JSON-LD scraper. Only Mammoth currently embeds Schema.org Event data. Add new sites here as you discover them.",
+  "jsonld": {
+    "enabled": true,
+    "urls": [
+      { "url": "https://www.mammothmountain.com/events", "source": "scraper:mammoth", "org": "Mammoth Mountain", "sport": "snowboard", "verified": true, "trust_tier": 2, "color": 95, "default_lat": 37.6304, "default_lon": -119.0326, "default_distance_km": 4400 }
+    ]
+  },
+
+  "// html_scrapers": "Per-site CSS-selector scrapers for sites without JSON-LD. Add a block per site once you've inspected its DOM.",
+  "html_scrapers": {
+    "enabled": true,
+    "sites": []
+  },
+
+  "// llm": "LLM-extraction. Set OPENROUTER_API_KEY or ANTHROPIC_API_KEY. SPA sites use 'render: true' to invoke headless Chromium first.",
+  "llm": {
+    "enabled": true,
+    "provider": null,
+    "model":    null,
+    "urls": [
+      { "url": "https://www.jacksonhole.com/events",                     "source": "llm:jackson",    "org": "Jackson Hole",       "sport": "ski",       "color": 60,  "default_lat": 43.5875, "default_lon": -110.8281, "default_distance_km": 3500 },
+      { "url": "https://www.skibig3.com/events/",                        "source": "llm:banff",      "org": "SkiBig3 (Banff)",    "sport": "snowboard", "color": 95,  "default_lat": 51.4968, "default_lon": -115.9281, "default_distance_km": 580 },
+      { "url": "https://www.aspensnowmass.com/while-you-are-here/events","source": "llm:aspen",      "org": "Aspen Snowmass",     "sport": "snowboard", "color": 95,  "default_lat": 39.1911, "default_lon": -106.8175, "default_distance_km": 3300 },
+
+      { "url": "https://www.killington.com/events",                      "source": "llm:killington", "org": "Killington",         "sport": "snowboard", "color": 95,  "default_lat": 43.6203, "default_lon": -72.7881,  "default_distance_km": 700,  "render": true },
+      { "url": "https://www.mtbachelor.com/events",                      "source": "llm:bachelor",   "org": "Mt Bachelor",        "sport": "snowboard", "color": 230, "default_lat": 43.9786, "default_lon": -121.6884, "default_distance_km": 3800, "render": true },
+      { "url": "https://bigskyresort.com/events",                        "source": "llm:bigsky",     "org": "Big Sky",            "sport": "snowboard", "color": 230, "default_lat": 45.2841, "default_lon": -111.4015, "default_distance_km": 3700, "render": true },
+      { "url": "https://www.tremblant.ca/things-to-do/events",           "source": "llm:tremblant",  "org": "Mont Tremblant",     "sport": "snowboard", "color": 230, "default_lat": 46.2117, "default_lon": -74.5841,  "default_distance_km": 142,  "render": true },
+      { "url": "https://www.snowbird.com/events",                        "source": "llm:snowbird",   "org": "Snowbird",           "sport": "snowboard", "color": 230, "default_lat": 40.5810, "default_lon": -111.6557, "default_distance_km": 3500, "render": true },
+      { "url": "https://www.skiloveland.com/events/",                    "source": "llm:loveland",   "org": "Loveland Ski Area",  "sport": "snowboard", "color": 95,  "default_lat": 39.6803, "default_lon": -105.8980, "default_distance_km": 3300, "render": true },
+
+      { "url": "https://www.sundayriver.com/events",                     "source": "llm:sundayriver","org": "Sunday River",       "sport": "snowboard", "color": 95,  "default_lat": 44.4720, "default_lon": -70.8576,  "default_distance_km": 800,   "render": false },
+      { "url": "https://www.windhammountain.com/events",                 "source": "llm:windham",    "org": "Windham Mountain",   "sport": "snowboard", "color": 95,  "default_lat": 42.2950, "default_lon": -74.2570,  "default_distance_km": 350,   "render": false },
+
+      { "url": "https://www.sunpeaksresort.com/events",                  "source": "llm:sunpeaks",   "org": "Sun Peaks",          "sport": "snowboard", "color": 230, "default_lat": 50.8819, "default_lon": -119.8839, "default_distance_km": 3500,  "render": false },
+      { "url": "https://www.revelstokemountainresort.com/events",        "source": "llm:revelstoke", "org": "Revelstoke",         "sport": "snowboard", "color": 230, "default_lat": 50.9981, "default_lon": -118.1957, "default_distance_km": 3500,  "render": false },
+      { "url": "https://www.skilouise.com/events/",                      "source": "llm:lakelouise", "org": "Lake Louise",        "sport": "snowboard", "color": 230, "default_lat": 51.4419, "default_lon": -116.1739, "default_distance_km": 580,   "render": false },
+      { "url": "https://www.skibanff.com/events/",                       "source": "llm:banff-sunshine","org": "Sunshine Village","sport": "snowboard", "color": 230, "default_lat": 51.0849, "default_lon": -115.7711, "default_distance_km": 580,   "render": false },
+      { "url": "https://www.bigwhite.com/events",                        "source": "llm:bigwhite",   "org": "Big White",          "sport": "snowboard", "color": 230, "default_lat": 49.7236, "default_lon": -118.9354, "default_distance_km": 3500,  "render": false },
+      { "url": "https://cypressmountain.com/events/",                    "source": "llm:cypress",    "org": "Cypress Mountain",   "sport": "snowboard", "color": 230, "default_lat": 49.3970, "default_lon": -123.2042, "default_distance_km": 3300,  "render": true },
+
+      { "url": "https://www.redbull.com/us-en/events",                   "source": "llm:redbull",    "org": "Red Bull Events",    "sport": "snowboard", "color": 35,  "default_lat": null,    "default_lon": null,      "default_distance_km": null,  "render": false },
+      { "url": "https://www.thrashermagazine.com/articles/events/",      "source": "llm:thrasher",   "org": "Thrasher Magazine",  "sport": "skate",     "color": 35,  "default_lat": null,    "default_lon": null,      "default_distance_km": null,  "render": false },
+
+      { "url": "https://www.waterville.com/events",                      "source": "llm:waterville", "org": "Waterville Valley",  "sport": "snowboard", "color": 95,  "default_lat": 43.9520, "default_lon": -71.5050,  "default_distance_km": 380,   "render": false },
+      { "url": "https://www.jaypeakresort.com/events/",                  "source": "llm:jaypeak",    "org": "Jay Peak",           "sport": "snowboard", "color": 95,  "default_lat": 44.9319, "default_lon": -72.5319,  "default_distance_km": 200,   "render": false },
+      { "url": "https://www.bigbearmountainresort.com/events",           "source": "llm:bigbear",    "org": "Big Bear Mountain",  "sport": "snowboard", "color": 60,  "default_lat": 34.2436, "default_lon": -116.8814, "default_distance_km": 3700,  "render": false },
+      { "url": "https://www.cannonmt.com/events",                        "source": "llm:cannon",     "org": "Cannon Mountain",    "sport": "snowboard", "color": 95,  "default_lat": 44.1725, "default_lon": -71.6942,  "default_distance_km": 350,   "render": true  }
+    ]
+  },
+
+  "// gear_deals": "LLM-extracted gear deals from sale/clearance pages. Writes to gear_deals table. 'render: true' uses Playwright. Cloudflare-blocked sites (evo, mec, sportchek, backcountry) need a residential proxy and were dropped from this list — see ingest/adapters/gear-deals.js for context.",
+  "gear_deals": {
+    "enabled": true,
+    "urls": [
+      { "url": "https://www.tactics.com/sale/snowboard",                "source": "deals:tactics:snow",       "shop": "tactics.com",       "sport": "snowboard", "render": true },
+      { "url": "https://www.tactics.com/sale/skate",                    "source": "deals:tactics:skate",      "shop": "tactics.com",       "sport": "skate",     "render": true },
+      { "url": "https://www.tactics.com/sale/ski",                      "source": "deals:tactics:ski",        "shop": "tactics.com",       "sport": "ski",       "render": true },
+      { "url": "https://www.thelasthunt.com/collections/snow-on-sale",  "source": "deals:lasthunt:snow",      "shop": "thelasthunt.com",   "sport": "snowboard", "render": true },
+      { "url": "https://www.thelasthunt.com/collections/skateboarding", "source": "deals:lasthunt:skate",     "shop": "thelasthunt.com",   "sport": "skate",     "render": true },
+      { "url": "https://www.thelasthunt.com/collections/cycling-on-sale","source": "deals:lasthunt:mtb",      "shop": "thelasthunt.com",   "sport": "mtb",       "render": true },
+      { "url": "https://www.jensonusa.com/Sale",                        "source": "deals:jenson:mtb",         "shop": "jensonusa.com",     "sport": "mtb",       "render": true },
+      { "url": "https://www.ccs.com/sale",                              "source": "deals:ccs:sale",           "shop": "ccs.com",           "sport": "skate",     "render": true }
+    ]
+  }
+}

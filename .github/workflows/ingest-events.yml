@@ -1,0 +1,66 @@
+name: Ingest events
+
+# Runs daily at 11:00 UTC (6am EST / 3am PST). Adjust if your launch region
+# benefits from a different hour. You can also trigger manually from the
+# Actions tab → "Ingest events" → Run workflow.
+on:
+  schedule:
+    - cron: "0 11 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run without writing to Supabase"
+        required: false
+        default: "false"
+
+jobs:
+  ingest:
+    runs-on: ubuntu-latest
+    # Real-world budget: 23 LLM pages × ~15s + 8 deal pages × ~15s + 6min for
+    # Eventbrite + Reddit + buffer ≈ 20 minutes. 30 leaves headroom.
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          # package-lock.json changes are the trustworthy cache-bust signal —
+          # package.json's "^1.59.1" stays static across many Playwright minor
+          # versions, so caching against it serves stale browsers.
+          cache-dependency-path: ingest/package-lock.json
+
+      - name: Install ingest deps
+        working-directory: ingest
+        run: npm install --no-audit --no-fund
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('ingest/package-lock.json') }}
+
+      - name: Install Chromium for Playwright
+        working-directory: ingest
+        run: npx playwright install --with-deps chromium
+
+      - name: Run ingest
+        working-directory: ingest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EVENTBRITE_TOKEN: ${{ secrets.EVENTBRITE_TOKEN }}
+          # LLM provider keys — without these, llm.js + gear-deals.js
+          # silently log "no provider key, skipping" and the cron produces
+          # zero events from 23 of 24 sources.
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DRY_RUN: ${{ github.event.inputs.dry_run == 'true' && '1' || '' }}
+        run: node index.js
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Ingest job failed. Check logs above."

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<title>JamRadar — Offline</title>
+<meta name="theme-color" content="#0a0d12"/>
+<style>
+  :root {
+    --bg: #0a0d12;
+    --fg: oklch(0.97 0.005 90);
+    --fg-dim: oklch(0.55 0.014 240);
+    --accent: oklch(0.88 0.18 100);
+  }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--fg);
+    font-family: "Space Grotesk", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; padding: 32px 24px;
+    box-sizing: border-box;
+    padding-top: calc(env(safe-area-inset-top, 0px) + 32px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 32px);
+  }
+  .radar {
+    width: 96px; height: 96px; position: relative; margin-bottom: 24px;
+  }
+  .ring {
+    position: absolute; inset: 0; border-radius: 50%;
+    border: 1px solid oklch(0.88 0.18 100 / 0.3);
+  }
+  .ring.r2 { inset: 18px; }
+  .ring.r3 { inset: 36px; }
+  .dot {
+    position: absolute; left: 50%; top: 50%;
+    width: 14px; height: 14px; margin-left: -7px; margin-top: -7px;
+    background: var(--accent); border-radius: 50%;
+    box-shadow: 0 0 0 6px oklch(0.88 0.18 100 / 0.2), 0 0 22px var(--accent);
+    animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(0.85); }
+  }
+  h1 {
+    font-size: 28px; font-weight: 700; letter-spacing: -0.02em;
+    margin: 0 0 12px;
+  }
+  p {
+    color: var(--fg-dim); font-size: 14px; line-height: 1.5;
+    max-width: 280px; margin: 0 0 28px;
+  }
+  button {
+    appearance: none; cursor: pointer;
+    background: var(--accent); color: oklch(0.20 0.04 100);
+    border: none; padding: 14px 22px; border-radius: 999px;
+    font-family: inherit; font-weight: 600; font-size: 15px;
+  }
+  .kicker {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: 12px;
+  }
+</style>
+</head>
+<body>
+  <div class="radar">
+    <div class="ring"></div>
+    <div class="ring r2"></div>
+    <div class="ring r3"></div>
+    <div class="dot"></div>
+  </div>
+  <div class="kicker">JamRadar</div>
+  <h1>You're off the grid</h1>
+  <p>Looks like you don't have a connection right now. Once you're back online, JamRadar will reconnect to the radar.</p>
+  <button onclick="location.reload()">Try again</button>
+</body>
+</html>

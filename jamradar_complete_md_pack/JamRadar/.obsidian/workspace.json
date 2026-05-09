@@ -1,0 +1,229 @@
+{
+  "main": {
+    "id": "7486c3b7ddd922cf",
+    "type": "split",
+    "children": [
+      {
+        "id": "68983312369d5825",
+        "type": "tabs",
+        "dimension": 52.09390862944162,
+        "children": [
+          {
+            "id": "f8b5eade90da472a",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "JAMRADAR_MASTER_PLAN.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "JAMRADAR_MASTER_PLAN"
+            }
+          }
+        ]
+      },
+      {
+        "id": "dbeba21e7bf76cab",
+        "type": "tabs",
+        "dimension": 47.90609137055837,
+        "children": [
+          {
+            "id": "27921bbca241f5db",
+            "type": "leaf",
+            "state": {
+              "type": "graph",
+              "state": {},
+              "icon": "lucide-git-fork",
+              "title": "Graph view"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "70087e1ab2629d63",
+    "type": "split",
+    "children": [
+      {
+        "id": "862f8212d04f5ce6",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "3958f53371aff287",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "61f1b48d99bb37ad",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "46ccb130c63f125a",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "cb9cb06e8c1b35e4",
+    "type": "split",
+    "children": [
+      {
+        "id": "f4018a695e2b7700",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "c8b4c9ae76c8b06d",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "JAMRADAR_MASTER_PLAN.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for JAMRADAR_MASTER_PLAN"
+            }
+          },
+          {
+            "id": "07fa1b663079b85f",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "JAMRADAR_MASTER_PLAN.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from JAMRADAR_MASTER_PLAN"
+            }
+          },
+          {
+            "id": "eb1b7be5b5fe5926",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "ab6cbe56ad3860d0",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "d526fc4be68487be",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "JAMRADAR_MASTER_PLAN.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of JAMRADAR_MASTER_PLAN"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false
+    }
+  },
+  "active": "f8b5eade90da472a",
+  "lastOpenFiles": [
+    "Untitled.md",
+    "JAMRADAR_MASTER_PLAN.md",
+    "18_marketplace_signup_and_kyc_plan.md",
+    "17_data_ingest_plan.md",
+    "README.md",
+    "05_feature_list.md",
+    "01_overall_concept.md",
+    "Welcome.md",
+    "03_target_users.md",
+    "02_problem_and_opportunity.md",
+    "16_developer_build_prompt.md",
+    "15_future_expansion.md",
+    "14_branding_and_positioning.md",
+    "13_admin_and_moderation.md",
+    "12_technical_roadmap.md",
+    "11_launch_plan.md",
+    "10_mvp_scope.md",
+    "09_off_season_strategy.md",
+    "08_monetization_strategy.md",
+    "07_gear_deals_and_marketplace.md",
+    "06_indoor_training_facilities.md",
+    "04_core_user_flows.md"
+  ]
+}
