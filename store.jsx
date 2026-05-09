@@ -203,6 +203,59 @@ function useJamStore() {
           console.warn('[JamRadar] featureEvent server write failed:', e.message));
       }
     },
+    // ─── Marketplace (peer-to-peer gear listings) ─────────────────────
+    // List: rider posts a used board / jacket / etc. for sale. Active immediately
+    // (riders trust riders); admin can flag spam. Phase 2 will add Stripe Checkout
+    // with our application_fee skim — same insert path, the Buy button just
+    // routes through Stripe and the webhook flips status='sold'.
+    publishListing: async (listing) => {
+      if (!window.JR_SUPABASE_READY || !user) {
+        throw new Error('Sign in first to list gear.');
+      }
+      const sb = window.JR_SUPABASE;
+      const row = {
+        seller_user_id: user.id,
+        seller_name:    state.prefs.displayName?.trim() || (user.email?.split('@')[0]) || 'Rider',
+        title:          listing.title,
+        description:    listing.description || null,
+        brand:          listing.brand || null,
+        size:           listing.size  || null,
+        condition:      listing.condition,
+        sport:          listing.sport,
+        category:       listing.category || null,
+        price:          listing.price,
+        currency:       listing.currency || 'USD',
+        photos:         listing.photos || [],
+        location:       listing.location || null,
+        shipping:       listing.shipping || 'local-only',
+        shipping_cost:  listing.shipping_cost || null,
+      };
+      const { data, error } = await sb.from('gear_listings').insert([row]).select();
+      if (error) throw new Error(error.message);
+      window.dispatchEvent(new CustomEvent('jr:toast', {
+        detail: { msg: 'Listed — buyers can contact you now' },
+      }));
+      return data?.[0];
+    },
+    // Mark one of MY listings as sold. Doesn't claim a buyer (RLS blocks that
+    // for self-marks); the Stripe webhook is the only path that sets sold_to.
+    markListingSold: async (id) => {
+      if (!window.JR_SUPABASE_READY) return;
+      const { error } = await window.JR_SUPABASE
+        .from('gear_listings')
+        .update({ status: 'sold', sold_at: new Date().toISOString() })
+        .eq('id', id);
+      if (error) console.warn('[markListingSold] failed:', error.message);
+    },
+    withdrawListing: async (id) => {
+      if (!window.JR_SUPABASE_READY) return;
+      const { error } = await window.JR_SUPABASE
+        .from('gear_listings')
+        .update({ status: 'withdrawn' })
+        .eq('id', id);
+      if (error) console.warn('[withdrawListing] failed:', error.message);
+    },
+
     // Shop posts a new gear deal. Inserts into gear_deals with status='pending'
     // for admin review. RLS gates promotion fields server-side; the client
     // also explicitly omits them. Resolves to the inserted row on success.
@@ -701,6 +754,32 @@ async function fetchGearDeals() {
   }
 }
 window.JR_FETCH_GEAR_DEALS = fetchGearDeals;
+
+// ─────────────────────────────────────────────────────────────
+// Marketplace listings — anyone can read active rows, sellers see their own
+// withdrawn/sold via the listings_public_read RLS policy.
+// ─────────────────────────────────────────────────────────────
+async function fetchGearListings() {
+  try {
+    const sb = window.JR_SUPABASE;
+    if (!sb) return [];
+    const { data, error } = await sb
+      .from('gear_listings')
+      .select('*')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(80);
+    if (error) {
+      console.warn('[JamRadar] gear_listings fetch failed:', error.message);
+      return [];
+    }
+    return data || [];
+  } catch (e) {
+    console.warn('[JamRadar] gear_listings fetch threw:', e.message);
+    return [];
+  }
+}
+window.JR_FETCH_GEAR_LISTINGS = fetchGearListings;
 
 // ─────────────────────────────────────────────────────────────
 // Pending merges (admin queue for medium-confidence dedupe matches).

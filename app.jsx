@@ -34,6 +34,7 @@ function App() {
   const [openEventId, setOpenEventId] = React.useState(null);
   const [openOrgName, setOpenOrgName] = React.useState(null);
   const [openRiderId, setOpenRiderId] = React.useState(null);
+  const [openListingId, setOpenListingId] = React.useState(null);
   const [orgRoute, setOrgRoute] = React.useState('dashboard'); // dashboard | create | edit
   const [shopRoute, setShopRoute] = React.useState('dashboard'); // dashboard | post
   const [editingEventId, setEditingEventId] = React.useState(null);
@@ -56,6 +57,10 @@ function App() {
   const openRider = (id) => {
     setOpenRiderId(id);
     setRoute('riderProfile');
+  };
+  const openListing = (id) => {
+    setOpenListingId(id);
+    setRoute('listing');
   };
 
   // Deep-link support: /JamRadar.html?event=e1 opens that event on first paint.
@@ -200,6 +205,28 @@ function App() {
         resolvePendingMerge={actions.resolvePendingMerge}
       />
     );
+  } else if (route === 'listing') {
+    content = (
+      <ListingDetail
+        listingId={openListingId}
+        onBack={() => { setOpenListingId(null); setRoute('main'); }}
+      />
+    );
+  } else if (route === 'sell') {
+    content = (
+      <PostListingScreen
+        prefs={prefs}
+        onPublish={async (listing) => {
+          try {
+            await actions.publishListing(listing);
+            setRoute('main'); setTab('gear');
+          } catch (e) {
+            window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: e.message || 'Failed to list' } }));
+          }
+        }}
+        onBack={() => { setRoute('main'); setTab('gear'); }}
+      />
+    );
   } else if (route === 'shop') {
     if (shopRoute === 'post') {
       content = (
@@ -259,7 +286,13 @@ function App() {
         />
       );
     } else if (tab === 'gear') {
-      content = <GearScreen prefs={prefs}/>;
+      content = (
+        <GearScreen
+          prefs={prefs}
+          onOpenListing={openListing}
+          onSellGear={() => setRoute('sell')}
+        />
+      );
     } else if (tab === 'riders') {
       content = <RidersScreen prefs={prefs} onOpenRider={openRider}/>;
     } else {

@@ -1088,14 +1088,13 @@ function escapeICS(s) {
 }
 
 // ───────────── GEAR ─────────────
-function GearScreen({ prefs }) {
-  // Default the gear filter to "all", but bias the visible deals to user's sports.
+function GearScreen({ prefs, onOpenListing, onSellGear }) {
+  // Top-level mode: Deals (scraped/affiliate) vs For Sale (peer-to-peer listings).
+  const [mode, setMode] = React.useState('deals');
+  // Sport filter (only used in Deals mode).
   const [filter, setFilter] = React.useState('all');
 
-  // Pull live deals from Supabase (auto-approved by the ingest pipeline).
-  // Once even one real deal lands we hide the seed list — testers shouldn't
-  // see the "Sweet Skis · CAPiTA Mercury 155" placeholders sitting next to
-  // real Tactics products.
+  // Live deals from the daily-cron ingest.
   const [liveDeals, setLiveDeals] = React.useState([]);
   const [dealsLoaded, setDealsLoaded] = React.useState(false);
   React.useEffect(() => {
@@ -1112,13 +1111,25 @@ function GearScreen({ prefs }) {
     return () => { cancelled = true; };
   }, []);
 
+  // Peer-to-peer listings — refresh every 60s so new listings show without a
+  // hard reload.
+  const [listings, setListings] = React.useState([]);
+  React.useEffect(() => {
+    if (typeof window.JR_FETCH_GEAR_LISTINGS !== 'function') return;
+    let cancelled = false;
+    const refresh = async () => {
+      const rows = await window.JR_FETCH_GEAR_LISTINGS();
+      if (!cancelled) setListings(rows || []);
+    };
+    refresh();
+    const t = setInterval(refresh, 60_000);
+    return () => { cancelled = true; clearInterval(t); };
+  }, []);
+
   const allDeals = React.useMemo(() => {
-    // Use live data when we have it; only fall back to seed data when the
-    // fetch resolved to an empty array (Supabase not configured / nothing
-    // visible). Hides the prototype placeholders behind real product.
     if (liveDeals.length > 0) return liveDeals;
-    if (!dealsLoaded) return [];           // briefly empty during the fetch
-    return GEAR_DEALS;                     // genuinely no live deals → fall back
+    if (!dealsLoaded) return [];
+    return GEAR_DEALS;
   }, [liveDeals, dealsLoaded]);
 
   const sportPool = prefs?.sports?.length
@@ -1132,31 +1143,70 @@ function GearScreen({ prefs }) {
         <div className="mono" style={{
           fontSize: 10, letterSpacing: 0.12, textTransform: 'uppercase',
           color: 'var(--fg-dim)',
-        }}>Local · Affiliate · Sponsor</div>
+        }}>
+          {mode === 'deals' ? 'Local · Affiliate · Sponsor' : 'Buy · sell · trade with riders'}
+        </div>
         <div style={{
           fontFamily: 'var(--font-display)', fontSize: 26, fontWeight: 700,
           letterSpacing: '-0.025em', marginTop: 2, marginBottom: 14,
-        }}>Gear deals</div>
+        }}>{mode === 'deals' ? 'Gear deals' : 'Marketplace'}</div>
 
+        {/* Mode segmented control */}
         <div style={{
-          display: 'flex', gap: 6, overflowX: 'auto',
-          marginLeft: -18, marginRight: -18,
-          paddingLeft: 18, paddingRight: 18,
-        }} className="jr-scroll">
-          <PillChip active={filter === 'all'} onClick={() => setFilter('all')} label="All" count={sportPool.length}/>
-          {SPORTS.filter(s => sportPool.some(g => g.sport === s.id)).map(s => (
-            <PillChip key={s.id}
-              active={filter === s.id}
-              onClick={() => setFilter(s.id)}
-              label={s.label}
-              icon={s.icon}
-              count={sportPool.filter(g => g.sport === s.id).length}/>
-          ))}
+          display: 'flex', gap: 4, padding: 3, borderRadius: 999,
+          background: 'var(--bg-surface)', border: '1px solid var(--line-soft)',
+          marginBottom: 12,
+        }}>
+          {[
+            { id: 'deals',  label: `Deals (${allDeals.length})` },
+            { id: 'market', label: `For sale (${listings.length})` },
+          ].map(seg => {
+            const on = mode === seg.id;
+            return (
+              <button
+                key={seg.id}
+                onClick={() => setMode(seg.id)}
+                style={{
+                  appearance: 'none', cursor: 'pointer', flex: 1,
+                  padding: '8px 12px', borderRadius: 999, fontSize: 12,
+                  background: on ? 'var(--accent)' : 'transparent',
+                  color: on ? 'var(--accent-ink)' : 'var(--fg-muted)',
+                  border: 'none', fontFamily: 'var(--font-display)',
+                  fontWeight: 600,
+                }}
+              >{seg.label}</button>
+            );
+          })}
         </div>
+
+        {mode === 'deals' && (
+          <div style={{
+            display: 'flex', gap: 6, overflowX: 'auto',
+            marginLeft: -18, marginRight: -18,
+            paddingLeft: 18, paddingRight: 18,
+          }} className="jr-scroll">
+            <PillChip active={filter === 'all'} onClick={() => setFilter('all')} label="All" count={sportPool.length}/>
+            {SPORTS.filter(s => sportPool.some(g => g.sport === s.id)).map(s => (
+              <PillChip key={s.id}
+                active={filter === s.id}
+                onClick={() => setFilter(s.id)}
+                label={s.label}
+                icon={s.icon}
+                count={sportPool.filter(g => g.sport === s.id).length}/>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="jr-scroll" style={{ flex: 1, overflowY: 'auto', padding: '4px 16px 100px' }}>
-        {filtered.length === 0 ? (
+        {mode === 'market' ? (
+          <MarketplaceList
+            prefs={prefs}
+            listings={listings}
+            onOpenListing={onOpenListing}
+            onSellGear={onSellGear}
+          />
+        ) : filtered.length === 0 ? (
           <div style={{
             padding: 40, textAlign: 'center', color: 'var(--fg-muted)',
             border: '1px dashed var(--line)', borderRadius: 'var(--r-md)',
