@@ -2,9 +2,9 @@
   "// region_focus": "Comma-separated city/region keywords used by adapters that filter by location.",
   "region_focus": ["United States", "Canada"],
 
-  "// eventbrite": "Free Eventbrite Public API. Set EVENTBRITE_TOKEN in env. Categories: 108=Sports & Fitness. Region list covers all 10 Canadian provinces (capital + key metros) and all 50 US states (largest action-sport metro per region). Keep keywords short — total calls = regions × keywords with 1s sleep, which has to fit inside the GitHub Actions 30-min timeout AND Eventbrite's 1000-calls/hour quota.",
+  "// eventbrite": "DISABLED. Eventbrite removed public events-search from their free API in 2024 — the /events/search endpoint now returns 404 for every query unless you're searching events from organizations you own. Region list is preserved below for documentation + in case Eventbrite ever restores public discovery, but the adapter will be skipped. NA_CITIES + the LLM resort feeds carry the discovery work.",
   "eventbrite": {
-    "enabled": true,
+    "enabled": false,
     "categories": ["108"],
     "keywords": ["snowboard", "ski", "skate", "rail jam"],
     "regions": [

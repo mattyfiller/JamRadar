@@ -20,7 +20,13 @@ const DEFAULT_MODELS = {
   openrouter: 'anthropic/claude-haiku-4.5',
 };
 
-const MAX_BODY_CHARS = 14000;
+// Body cap was 14000 originally. Bumping to 22000 because the markdown
+// URL injection adds ~80-150 chars per anchor; with a typical 30-product
+// page hosting 60-90 anchors, the original cap was truncating actual
+// products on Tactics ski / jenson / ccs and the LLM saw only nav.
+// 22000 chars at ~4 chars/token ≈ 5500 input tokens, still well under
+// Claude Haiku's 200k context.
+const MAX_BODY_CHARS = 22000;
 const MIN_BODY_CHARS = 200;
 
 const SYSTEM_PROMPT = `You extract gear deals from shop sale pages. Given the visible text content, return a JSON array of products on sale. Each item MUST have:
