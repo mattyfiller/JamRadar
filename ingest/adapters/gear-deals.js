@@ -27,8 +27,10 @@ const SYSTEM_PROMPT = `You extract gear deals from shop sale pages. Given the vi
 - title (string, including brand if visible)
 - price (number, current sale price in dollars; null if unknown)
 - original (number, regular price in dollars before discount; null if unknown)
-- url (absolute URL of the product page; null if unknown)
+- url (absolute URL of the product page — look for URLs in [brackets] adjacent to product titles in the input text; null if no bracketed URL is near the product)
 - sport (one of: "snowboard","ski","skate","mtb","bmx" — guess from product name and category)
+
+The page text contains URLs in square brackets right after each linkable element (e.g. "Burton Custom 158 [https://shop.com/burton-custom-158]"). Match each product to the URL bracketed nearest its title.
 
 Only include items that are clearly on sale (have a discount or "sale" indicator). Skip non-sale items, navigation, accessories like screws/wax unless they're a real listed deal. Return up to 30 items max. Return ONLY a JSON array. No prose, no markdown.`;
 
@@ -74,6 +76,27 @@ async function extractFrom(url, meta, { provider, apiKey, model }) {
   }
   const $ = cheerio.load(html);
   $('script, style, nav, footer, header, aside, form').remove();
+
+  // Convert product anchor tags into markdown links BEFORE stripping. Without
+  // this the LLM sees plain text only and can't return URLs, so reg_link ends
+  // up null on shops where the markup wraps each product card in <a href>.
+  // We only inline link text + href when the link is product-like (anchored
+  // to the same shop hostname or a path). Limits to ~100 chars of link text
+  // to avoid stuffing the prompt with nav links.
+  $('a[href]').each((_, el) => {
+    const $a = $(el);
+    const href = $a.attr('href') || '';
+    const text = $a.text().replace(/\s+/g, ' ').trim();
+    if (!text || text.length > 120) return;
+    // Skip obvious non-product links (sort/filter/login/cart).
+    if (/^(sort|filter|login|sign in|cart|wishlist|account|menu|search|view all|see more|next|previous)$/i.test(text)) return;
+    if (/#$|^javascript:|^mailto:|^tel:/i.test(href)) return;
+    const abs = absoluteUrl(href, url);
+    // Replace the anchor's content with `text [URL]` so the LLM sees the URL
+    // adjacent to the title and can extract it. Markdown-style is concise
+    // and the LLM is trained on it.
+    $a.replaceWith(` ${text} [${abs}] `);
+  });
 
   // Try a few candidate containers and keep the LONGEST match — different
   // shops use very different markup (Shopify, custom React, etc.) and the

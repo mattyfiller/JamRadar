@@ -1092,23 +1092,34 @@ function GearScreen({ prefs }) {
   // Default the gear filter to "all", but bias the visible deals to user's sports.
   const [filter, setFilter] = React.useState('all');
 
-  // Pull live deals from Supabase (auto-approved by the ingest pipeline) and
-  // merge them ahead of the seed list. If the fetch fails or returns nothing,
-  // we still show the hand-curated GEAR_DEALS so the screen never feels empty.
+  // Pull live deals from Supabase (auto-approved by the ingest pipeline).
+  // Once even one real deal lands we hide the seed list — testers shouldn't
+  // see the "Sweet Skis · CAPiTA Mercury 155" placeholders sitting next to
+  // real Tactics products.
   const [liveDeals, setLiveDeals] = React.useState([]);
+  const [dealsLoaded, setDealsLoaded] = React.useState(false);
   React.useEffect(() => {
     let cancelled = false;
-    if (typeof window.JR_FETCH_GEAR_DEALS !== 'function') return;
+    if (typeof window.JR_FETCH_GEAR_DEALS !== 'function') {
+      setDealsLoaded(true);
+      return;
+    }
     window.JR_FETCH_GEAR_DEALS().then(rows => {
-      if (!cancelled) setLiveDeals(Array.isArray(rows) ? rows : []);
-    }).catch(() => {});
+      if (cancelled) return;
+      setLiveDeals(Array.isArray(rows) ? rows : []);
+      setDealsLoaded(true);
+    }).catch(() => { if (!cancelled) setDealsLoaded(true); });
     return () => { cancelled = true; };
   }, []);
 
   const allDeals = React.useMemo(() => {
-    // Live deals first (real product, real discount), seeds as filler.
-    return [...liveDeals, ...GEAR_DEALS];
-  }, [liveDeals]);
+    // Use live data when we have it; only fall back to seed data when the
+    // fetch resolved to an empty array (Supabase not configured / nothing
+    // visible). Hides the prototype placeholders behind real product.
+    if (liveDeals.length > 0) return liveDeals;
+    if (!dealsLoaded) return [];           // briefly empty during the fetch
+    return GEAR_DEALS;                     // genuinely no live deals → fall back
+  }, [liveDeals, dealsLoaded]);
 
   const sportPool = prefs?.sports?.length
     ? allDeals.filter(g => prefs.sports.includes(g.sport))
