@@ -9,12 +9,18 @@ const JR_LS_KEY = 'jamradar.v1';
 
 const DEFAULT_PREFS = {
   onboarded: false,
-  // 'rider' = browsing as a rider; 'organizer' = posts events from a venue/shop/club.
+  // 'rider' = browsing as a rider
+  // 'organizer' = posts events from a venue / club / event series
+  // 'shop'      = posts gear deals from an action-sports retailer
   // Set during onboarding; can be switched anytime via tweaks panel.
   accountType: 'rider',
   // For organizer accounts only; collected during onboarding.
   organizerName: '',          // "Blue Mountain Park Crew" / "Sweet Skis" / etc.
   organizerKind: 'mountain',  // mountain | indoor | shop | brand | club | skatepark | event-organizer
+  // For shop accounts only.
+  shopName:   '',             // "Sweet Skis" / "Underpass Skate" / etc.
+  shopWebsite: '',            // root site, used to generate affiliate links + verify
+  shopSports: ['snowboard'],  // which sports the shop sells (drives default sport on posted deals)
   sports: ['snowboard', 'ski'],
   city: 'Toronto',
   radius: 50,
@@ -196,6 +202,45 @@ function useJamStore() {
         editOnServer(id, { featured: willBeFeatured }).catch(e =>
           console.warn('[JamRadar] featureEvent server write failed:', e.message));
       }
+    },
+    // Shop posts a new gear deal. Inserts into gear_deals with status='pending'
+    // for admin review. RLS gates promotion fields server-side; the client
+    // also explicitly omits them. Resolves to the inserted row on success.
+    publishDeal: async (deal) => {
+      if (!window.JR_SUPABASE_READY || !user) {
+        throw new Error('Supabase not configured / not signed in');
+      }
+      const sb = window.JR_SUPABASE;
+      // Pre-compute a stable external_id so re-posting the same product
+      // upserts in place rather than duplicating.
+      const t = String(deal.title || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+      const p = Math.round((Number(deal.price) || 0) * 100);
+      let h = 0;
+      const key = `${t}|${p}`;
+      for (let i = 0; i < key.length; i++) h = ((h << 5) - h) + key.charCodeAt(i);
+      const externalId = `shop:${user.id}::${(h >>> 0).toString(36)}`;
+
+      const row = {
+        external_id:  externalId,
+        source:       `shop:${user.id}`,
+        shop:         deal.shop,
+        shop_user_id: user.id,
+        title:        deal.title,
+        sport:        deal.sport,
+        price:        deal.price,
+        original:     deal.original,
+        off_pct:      deal.off_pct,
+        reg_link:     deal.reg_link,
+        status:       'pending',           // RLS will reject anything else
+      };
+      const { data, error } = await sb.from('gear_deals')
+        .upsert([row], { onConflict: 'source,external_id' })
+        .select();
+      if (error) throw new Error(error.message);
+      window.dispatchEvent(new CustomEvent('jr:toast', {
+        detail: { msg: 'Deal submitted for review' },
+      }));
+      return data?.[0];
     },
     // Verify an organizer — bumps org_verified=true on every event whose
     // org_name matches. Optimistic local update + server write for each

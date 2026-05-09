@@ -28,19 +28,21 @@ function App() {
   const [route, setRoute] = React.useState(() => {
     if (!prefs.onboarded) return 'onboarding';
     if (prefs.accountType === 'organizer') return 'org';
+    if (prefs.accountType === 'shop')      return 'shop';
     return 'main';
   });
   const [openEventId, setOpenEventId] = React.useState(null);
   const [openOrgName, setOpenOrgName] = React.useState(null);
   const [openRiderId, setOpenRiderId] = React.useState(null);
   const [orgRoute, setOrgRoute] = React.useState('dashboard'); // dashboard | create | edit
+  const [shopRoute, setShopRoute] = React.useState('dashboard'); // dashboard | post
   const [editingEventId, setEditingEventId] = React.useState(null);
 
   // Switching device mode jumps to the matching dashboard.
   React.useEffect(() => {
     if (tweaks.deviceMode === 'organizer' && route !== 'org') setRoute('org');
     else if (tweaks.deviceMode === 'admin' && route !== 'admin') setRoute('admin');
-    else if (tweaks.deviceMode === 'rider' && (route === 'org' || route === 'admin')) setRoute('main');
+    else if (tweaks.deviceMode === 'rider' && (route === 'org' || route === 'admin' || route === 'shop')) setRoute('main');
   }, [tweaks.deviceMode]);
 
   const openEvent = (id) => {
@@ -77,11 +79,13 @@ function App() {
         defaults={prefs}
         onDone={(p) => {
           actions.completeOnboarding(p);
-          // Organizers boot straight into the org dashboard so they can
-          // post their first event immediately.
+          // Organizers + shops boot straight into their dashboard so they can
+          // post their first event/deal immediately. Riders go to Discover.
           if (p.accountType === 'organizer') {
             setTweak('deviceMode', 'organizer');
             setRoute('org');
+          } else if (p.accountType === 'shop') {
+            setRoute('shop');
           } else {
             setRoute('main');
           }
@@ -196,6 +200,27 @@ function App() {
         resolvePendingMerge={actions.resolvePendingMerge}
       />
     );
+  } else if (route === 'shop') {
+    if (shopRoute === 'post') {
+      content = (
+        <PostDealScreen
+          prefs={prefs}
+          onPublish={async (deal) => {
+            await actions.publishDeal(deal);
+            setShopRoute('dashboard');
+          }}
+          onBack={() => setShopRoute('dashboard')}
+        />
+      );
+    } else {
+      content = (
+        <ShopDashboard
+          prefs={prefs}
+          onPostDeal={() => setShopRoute('post')}
+          onBack={() => { setTweak('deviceMode', 'rider'); setRoute('main'); }}
+        />
+      );
+    }
   } else {
     // Main tab content
     if (tab === 'discover') {

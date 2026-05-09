@@ -20,6 +20,9 @@ function Onboarding({ onDone, defaults = {} }) {
   const [accountType, setAccountType]     = React.useState(defaults.accountType ?? 'rider');
   const [organizerName, setOrganizerName] = React.useState(defaults.organizerName ?? '');
   const [organizerKind, setOrganizerKind] = React.useState(defaults.organizerKind ?? 'mountain');
+  const [shopName, setShopName]           = React.useState(defaults.shopName ?? '');
+  const [shopWebsite, setShopWebsite]     = React.useState(defaults.shopWebsite ?? '');
+  const [shopSports, setShopSports]       = React.useState(defaults.shopSports ?? ['snowboard']);
   const [sports, setSports] = React.useState(defaults.sports ?? ['snowboard', 'ski']);
   const [city, setCity]     = React.useState(defaults.city ?? 'Toronto');
   const [radius, setRadius] = React.useState(defaults.radius ?? 50);
@@ -32,6 +35,9 @@ function Onboarding({ onDone, defaults = {} }) {
     accountType,
     organizerName: accountType === 'organizer' ? organizerName.trim() : '',
     organizerKind: accountType === 'organizer' ? organizerKind : 'mountain',
+    shopName:    accountType === 'shop' ? shopName.trim() : '',
+    shopWebsite: accountType === 'shop' ? shopWebsite.trim() : '',
+    shopSports:  accountType === 'shop' ? shopSports : [],
     sports, city, radius, types, notif,
   });
 
@@ -83,6 +89,9 @@ function Onboarding({ onDone, defaults = {} }) {
             accountType={accountType} onAccountType={setAccountType}
             organizerName={organizerName} onOrganizerName={setOrganizerName}
             organizerKind={organizerKind} onOrganizerKind={setOrganizerKind}
+            shopName={shopName} onShopName={setShopName}
+            shopWebsite={shopWebsite} onShopWebsite={setShopWebsite}
+            shopSports={shopSports} onShopSports={setShopSports}
           />
         )}
         {step === 2 && (
@@ -108,7 +117,9 @@ function Onboarding({ onDone, defaults = {} }) {
         )}
         {step === 6 && (
           <StepDone
-            accountType={accountType} organizerName={organizerName} organizerKind={organizerKind}
+            accountType={accountType}
+            organizerName={organizerName} organizerKind={organizerKind}
+            shopName={shopName} shopWebsite={shopWebsite} shopSports={shopSports}
             sports={sports} city={city} radius={radius}
             types={types} notif={notif}
           />
@@ -132,6 +143,7 @@ function Onboarding({ onDone, defaults = {} }) {
           }
           const blocked =
             (step === 1 && accountType === 'organizer' && organizerName.trim().length === 0) ||
+            (step === 1 && accountType === 'shop' && shopName.trim().length === 0) ||
             (step === 2 && sports.length === 0) ||
             (step === 4 && types.length === 0);
           return (
@@ -165,18 +177,19 @@ const ORGANIZER_KINDS = [
   { id: 'event-organizer',  label: 'Event organizer' },
 ];
 
-function StepAccountType({ accountType, onAccountType, organizerName, onOrganizerName, organizerKind, onOrganizerKind }) {
+function StepAccountType({ accountType, onAccountType, organizerName, onOrganizerName, organizerKind, onOrganizerKind, shopName, onShopName, shopWebsite, onShopWebsite, shopSports, onShopSports }) {
   return (
     <div>
       <StepHeader
         kicker="01 · Account"
-        title="Are you here to ride or to run events?"
-        sub="You can switch later if you wear both hats."
+        title="What brings you to JamRadar?"
+        sub="Pick one — you can always switch later from your profile."
       />
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 18 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 18 }}>
         {[
-          { id: 'rider',     label: 'Rider',      sub: 'Browse, save, RSVP', glyph: '◣' },
-          { id: 'organizer', label: 'Organizer',  sub: 'Post events, see analytics', glyph: '★' },
+          { id: 'rider',     label: 'Rider',     sub: 'Browse + RSVP',     glyph: '◣' },
+          { id: 'organizer', label: 'Organizer', sub: 'Post events',       glyph: '★' },
+          { id: 'shop',      label: 'Shop',      sub: 'Post gear deals',   glyph: '◆' },
         ].map(opt => {
           const on = accountType === opt.id;
           return (
@@ -185,11 +198,11 @@ function StepAccountType({ accountType, onAccountType, organizerName, onOrganize
               onClick={() => onAccountType(opt.id)}
               style={{
                 appearance: 'none', cursor: 'pointer', textAlign: 'left',
-                padding: 16, borderRadius: 'var(--r-md)',
+                padding: 12, borderRadius: 'var(--r-md)',
                 background: on ? 'var(--accent-soft)' : 'var(--bg-surface)',
                 border: `1px solid ${on ? 'var(--accent)' : 'var(--line-soft)'}`,
                 color: 'var(--fg)',
-                display: 'flex', flexDirection: 'column', gap: 8, minHeight: 110,
+                display: 'flex', flexDirection: 'column', gap: 6, minHeight: 110,
                 transition: 'background .15s ease, border-color .15s ease',
               }}
             >
@@ -197,23 +210,23 @@ function StepAccountType({ accountType, onAccountType, organizerName, onOrganize
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
                 <span style={{
-                  fontSize: 26, color: on ? 'var(--accent)' : 'var(--fg-muted)',
+                  fontSize: 22, color: on ? 'var(--accent)' : 'var(--fg-muted)',
                   lineHeight: 1,
                 }}>{opt.glyph}</span>
                 {on && (
                   <span style={{
-                    width: 22, height: 22, borderRadius: '50%',
+                    width: 18, height: 18, borderRadius: '50%',
                     background: 'var(--accent)', color: 'var(--accent-ink)',
                     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                  }}>{Icon.check(14)}</span>
+                  }}>{Icon.check(11)}</span>
                 )}
               </div>
               <span style={{
                 fontFamily: 'var(--font-display)', fontWeight: 600,
-                fontSize: 16, letterSpacing: '-0.01em',
+                fontSize: 14, letterSpacing: '-0.01em',
               }}>{opt.label}</span>
               <span className="mono" style={{
-                fontSize: 10, color: 'var(--fg-dim)', letterSpacing: 0.06,
+                fontSize: 9, color: 'var(--fg-dim)', letterSpacing: 0.06,
                 textTransform: 'uppercase',
               }}>{opt.sub}</span>
             </button>
@@ -273,6 +286,92 @@ function StepAccountType({ accountType, onAccountType, organizerName, onOrganize
           }}>
             New organizers go through admin verification before events go live to riders.
             You'll be able to post immediately; events show on Discover once approved.
+          </p>
+        </div>
+      )}
+
+      {accountType === 'shop' && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div>
+            <div className="mono" style={{
+              fontSize: 10, letterSpacing: 0.12, textTransform: 'uppercase',
+              color: 'var(--fg-dim)', marginBottom: 6,
+            }}>Shop name</div>
+            <input
+              value={shopName || ''}
+              onChange={(e) => onShopName?.(e.target.value)}
+              placeholder="e.g. Sweet Skis"
+              maxLength={64}
+              style={{
+                width: '100%', background: 'var(--bg-surface)',
+                border: '1px solid var(--line-soft)', borderRadius: 10,
+                padding: '12px 14px', color: 'var(--fg)', fontSize: 15,
+                fontFamily: 'var(--font-display)', fontWeight: 500,
+              }}
+            />
+          </div>
+
+          <div>
+            <div className="mono" style={{
+              fontSize: 10, letterSpacing: 0.12, textTransform: 'uppercase',
+              color: 'var(--fg-dim)', marginBottom: 6,
+            }}>Website (optional, used for affiliate links)</div>
+            <input
+              value={shopWebsite || ''}
+              onChange={(e) => onShopWebsite?.(e.target.value)}
+              placeholder="https://sweetskis.com"
+              type="url"
+              autoComplete="off"
+              style={{
+                width: '100%', background: 'var(--bg-surface)',
+                border: '1px solid var(--line-soft)', borderRadius: 10,
+                padding: '12px 14px', color: 'var(--fg)', fontSize: 15,
+                fontFamily: 'var(--font-display)', fontWeight: 500,
+              }}
+            />
+          </div>
+
+          <div>
+            <div className="mono" style={{
+              fontSize: 10, letterSpacing: 0.12, textTransform: 'uppercase',
+              color: 'var(--fg-dim)', marginBottom: 6,
+            }}>What sports do you sell?</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {[
+                { id: 'snowboard', label: 'Snowboard' },
+                { id: 'ski',       label: 'Ski' },
+                { id: 'skate',     label: 'Skate' },
+                { id: 'mtb',       label: 'MTB' },
+                { id: 'bmx',       label: 'BMX' },
+              ].map(s => {
+                const on = (shopSports || []).includes(s.id);
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => {
+                      const cur = shopSports || [];
+                      onShopSports?.(on ? cur.filter(x => x !== s.id) : [...cur, s.id]);
+                    }}
+                    style={{
+                      appearance: 'none', cursor: 'pointer',
+                      padding: '8px 12px', borderRadius: 999, fontSize: 12,
+                      background: on ? 'var(--accent)' : 'transparent',
+                      border: `1px solid ${on ? 'var(--accent)' : 'var(--line)'}`,
+                      color: on ? 'var(--accent-ink)' : 'var(--fg)',
+                      fontFamily: 'var(--font-display)', fontWeight: 500,
+                    }}
+                  >{s.label}</button>
+                );
+              })}
+            </div>
+          </div>
+
+          <p className="mono" style={{
+            margin: 0, fontSize: 10, color: 'var(--fg-dim)', lineHeight: 1.5,
+          }}>
+            Shops post deals directly. Each deal goes through quick admin review,
+            then appears on Discover and the Gear tab. Free to post; sponsored placement
+            is a future paid tier.
           </p>
         </div>
       )}
@@ -684,12 +783,16 @@ function StepNotif({ notif, onNotif }) {
 }
 
 // ───────────── STEP 5: Done summary ─────────────
-function StepDone({ accountType, organizerName, organizerKind, sports, city, radius, types, notif }) {
+function StepDone({ accountType, organizerName, organizerKind, shopName, shopWebsite, shopSports, sports, city, radius, types, notif }) {
   const sportLabels = sports
     .map(id => _OB_SPORTS.find(s => s.id === id)?.label)
     .filter(Boolean);
   const notifLabel = NOTIF_STYLES.find(n => n.id === notif)?.label;
   const orgKindLabel = ORGANIZER_KINDS.find(k => k.id === organizerKind)?.label;
+  const shopSportsLabel = (shopSports || [])
+    .map(id => _OB_SPORTS.find(s => s.id === id)?.label)
+    .filter(Boolean)
+    .join(', ');
 
   // Real count from the live event store. Falls back to seed events count if
   // Supabase hasn't loaded yet, so the welcome screen never lies.
@@ -708,15 +811,32 @@ function StepDone({ accountType, organizerName, organizerKind, sports, city, rad
     <div>
       <StepHeader
         kicker="06 · Ready"
-        title={accountType === 'organizer' ? "Welcome, organizer." : "You're on the radar."}
+        title={
+          accountType === 'organizer' ? "Welcome, organizer." :
+          accountType === 'shop'      ? "Welcome, shop owner." :
+                                        "You're on the radar."
+        }
         sub="Quick recap — tap any pref later from your profile."
       />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <SummaryRow label="Account"
-          value={accountType === 'organizer' ? `Organizer · ${orgKindLabel || ''}` : 'Rider'}/>
+          value={
+            accountType === 'organizer' ? `Organizer · ${orgKindLabel || ''}` :
+            accountType === 'shop'      ? 'Shop' :
+                                          'Rider'
+          }/>
         {accountType === 'organizer' && organizerName && (
           <SummaryRow label="Org name" value={organizerName}/>
+        )}
+        {accountType === 'shop' && shopName && (
+          <SummaryRow label="Shop name" value={shopName}/>
+        )}
+        {accountType === 'shop' && shopWebsite && (
+          <SummaryRow label="Website" value={shopWebsite}/>
+        )}
+        {accountType === 'shop' && shopSportsLabel && (
+          <SummaryRow label="Sells" value={shopSportsLabel}/>
         )}
         <SummaryRow label="Sports"        value={sportLabels.join(', ') || '—'}/>
         <SummaryRow label="City"          value={city || '—'}/>

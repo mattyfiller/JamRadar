@@ -45,6 +45,16 @@
 <!-- Supabase JS client. Initialised in supabase-config.jsx; if no project URL/key
      is set, the app silently falls back to anonymous-only / localStorage. -->
 <script src="https://unpkg.com/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
+
+<!-- ───────── Skimlinks affiliate auto-rewrite (Phase 1 monetization) ─────────
+     Once you sign up at https://skimlinks.com (free, ~24h approval), get your
+     publisher ID and uncomment the block below. Skimlinks will automatically
+     detect outbound merchant URLs (Tactics, Last Hunt, Burton, etc.) on every
+     page view and rewrite them to include your tracking. Every click that
+     converts to a sale earns ~75% of the merchant commission.
+     No code changes needed beyond uncommenting + replacing YOUR-PUBLISHER-ID.
+<script type="text/javascript" src="https://s.skimresources.com/js/YOUR-PUBLISHER-ID.skimlinks.js"></script>
+     ─────────────────────────────────────────────────────────────────────── -->
 </head>
 <body>
 <div id="root"></div>
@@ -62,6 +72,7 @@
 <script type="text/babel" src="screens-org-profile.jsx"></script>
 <script type="text/babel" src="screens-rider-profile.jsx"></script>
 <script type="text/babel" src="screens-riders.jsx"></script>
+<script type="text/babel" src="screens-shop.jsx"></script>
 <script type="text/babel" src="screens-admin.jsx"></script>
 <script type="text/babel" src="screens-auth.jsx"></script>
 <script type="text/babel" src="app.jsx"></script>
