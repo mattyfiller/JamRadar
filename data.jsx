@@ -985,6 +985,7 @@ const NA_CITIES = [
   { name: 'Omaha',           region: 'NE', country: 'US', lat: 41.2565, lon: -95.9345 },
   { name: 'Wichita',         region: 'KS', country: 'US', lat: 37.6872, lon: -97.3301 },
   { name: 'Sioux Falls',     region: 'SD', country: 'US', lat: 43.5446, lon: -96.7311 },
+  { name: 'Rapid City',      region: 'SD', country: 'US', lat: 44.0805, lon: -103.2310 },
   { name: 'Fargo',           region: 'ND', country: 'US', lat: 46.8772, lon: -96.7898 },
   { name: 'Miami',           region: 'FL', country: 'US', lat: 25.7617, lon: -80.1918 },
   { name: 'Orlando',         region: 'FL', country: 'US', lat: 28.5383, lon: -81.3792 },

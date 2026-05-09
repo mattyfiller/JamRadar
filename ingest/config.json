@@ -64,7 +64,18 @@
       { "city": "Houston",       "lat": 29.7604,  "lon": -95.3698,   "within": "150km" },
       { "city": "Kansas City",   "lat": 39.0997,  "lon": -94.5786,   "within": "150km" },
       { "city": "St. Louis",     "lat": 38.6270,  "lon": -90.1994,   "within": "150km" },
-      { "city": "Washington DC", "lat": 38.9072,  "lon": -77.0369,   "within": "100km" }
+      { "city": "Washington DC", "lat": 38.9072,  "lon": -77.0369,   "within": "100km" },
+
+      { "city": "Des Moines",    "lat": 41.5868,  "lon": -93.6250,   "within": "150km" },
+      { "city": "Fargo",         "lat": 46.8772,  "lon": -96.7898,   "within": "150km" },
+      { "city": "Rapid City",    "lat": 44.0805,  "lon": -103.2310,  "within": "150km" },
+      { "city": "Hartford",      "lat": 41.7658,  "lon": -72.6734,   "within": "100km" },
+      { "city": "Providence",    "lat": 41.8240,  "lon": -71.4128,   "within": "80km"  },
+      { "city": "Birmingham AL", "lat": 33.5186,  "lon": -86.8104,   "within": "150km" },
+      { "city": "Newark",        "lat": 40.7357,  "lon": -74.1724,   "within": "100km" },
+      { "city": "Richmond",      "lat": 37.5407,  "lon": -77.4360,   "within": "150km" },
+      { "city": "Charleston WV", "lat": 38.3498,  "lon": -81.6326,   "within": "150km" },
+      { "city": "Baltimore",     "lat": 39.2904,  "lon": -76.6122,   "within": "100km" }
     ]
   },
 
