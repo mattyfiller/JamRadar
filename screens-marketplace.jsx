@@ -226,7 +226,7 @@ function ListingDetail({ listingId, onBack, onMarkSold, onWithdraw }) {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
         <div style={{ padding: '14px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--line-soft)' }}>
-          <button onClick={onBack} aria-label="Back" style={{ appearance: 'none', border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--fg)', padding: 6 }}>{Icon.back(22)}</button>
+          <BackButton onClick={onBack}/>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18 }}>Loading…</div>
         </div>
       </div>
@@ -236,7 +236,7 @@ function ListingDetail({ listingId, onBack, onMarkSold, onWithdraw }) {
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
         <div style={{ padding: '14px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--line-soft)' }}>
-          <button onClick={onBack} aria-label="Back" style={{ appearance: 'none', border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--fg)', padding: 6 }}>{Icon.back(22)}</button>
+          <BackButton onClick={onBack}/>
           <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18 }}>Listing not found</div>
         </div>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-muted)', padding: 32 }}>
@@ -325,7 +325,7 @@ function ListingDetail({ listingId, onBack, onMarkSold, onWithdraw }) {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
       {/* Header */}
       <div style={{ padding: '14px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--line-soft)' }}>
-        <button onClick={onBack} aria-label="Back" style={{ appearance: 'none', border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--fg)', padding: 6 }}>{Icon.back(22)}</button>
+        <BackButton onClick={onBack}/>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 16, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {listing.title}
         </div>
@@ -554,7 +554,7 @@ function PostListingScreen({ prefs, onPublish, onBack }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
       <div style={{ padding: '14px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--line-soft)' }}>
-        <button onClick={onBack} aria-label="Back" style={{ appearance: 'none', border: 'none', cursor: 'pointer', background: 'transparent', color: 'var(--fg)', padding: 6 }}>{Icon.back(22)}</button>
+        <BackButton onClick={onBack}/>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', flex: 1 }}>
           Sell your gear
         </div>

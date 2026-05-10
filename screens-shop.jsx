@@ -44,10 +44,7 @@ function ShopDashboard({ prefs, onPostDeal, onBack }) {
     <div className="topo-bg" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '4px 18px 14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <button onClick={onBack} aria-label="Back" style={{
-            appearance: 'none', border: 'none', cursor: 'pointer', background: 'transparent',
-            color: 'var(--fg)', padding: 0,
-          }}>{Icon.back(20)}</button>
+          <BackButton onClick={onBack}/>
           <div className="mono" style={{
             fontSize: 10, letterSpacing: 0.12, textTransform: 'uppercase',
             color: 'var(--fg-dim)',
@@ -191,10 +188,7 @@ function PostDealScreen({ prefs, onPublish, onBack }) {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
       <div style={{ padding: '14px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--line-soft)' }}>
-        <button onClick={onBack} aria-label="Back" style={{
-          appearance: 'none', border: 'none', cursor: 'pointer', background: 'transparent',
-          color: 'var(--fg)', padding: 6,
-        }}>{Icon.back(22)}</button>
+        <BackButton onClick={onBack}/>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', flex: 1 }}>
           Post deal
         </div>

@@ -105,6 +105,45 @@ const Icon = {
   ),
 };
 
+// Unified back button. Standardizes touch target (44×44, Apple HIG min),
+// disables iOS tap-highlight + 300ms tap delay, defaults to type="button" to
+// avoid accidental form submission, and centralizes the aria-label. Use this
+// everywhere instead of an inline <button onClick={onBack}>. Variants:
+//   default — transparent, for screens with their own background
+//   pill    — semi-transparent dark circle, for hero-image overlays
+function BackButton({ onClick, variant = 'default', size = 22, label = 'Back' }) {
+  const base = {
+    appearance: 'none', border: 'none', cursor: 'pointer',
+    width: 44, height: 44, borderRadius: 999,
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    padding: 0, lineHeight: 0,
+    // iOS-specific defenses — without these, taps can register intermittently
+    // or with a 300ms delay, and the default tap highlight flashes blue.
+    WebkitTapHighlightColor: 'transparent',
+    touchAction: 'manipulation',
+    flexShrink: 0,
+  };
+  const variants = {
+    default: { background: 'transparent', color: 'var(--fg)' },
+    pill:    {
+      background: 'oklch(0 0 0 / 0.4)',
+      backdropFilter: 'blur(10px)',
+      color: 'white',
+    },
+  };
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      style={{ ...base, ...(variants[variant] || variants.default) }}
+    >
+      {Icon.back(size)}
+    </button>
+  );
+}
+window.BackButton = BackButton;
+
 // Sport icon labels with subtle color tint
 function SportTag({ sport, size = 'sm' }) {
   const meta = window.JR_DATA.SPORTS.find(s => s.id === sport) || { label: sport, icon: '·' };

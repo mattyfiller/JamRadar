@@ -71,10 +71,7 @@ function AdminDashboard({ events, onApprove, onReject, onFeature, onVerifyOrg, o
     <div className="topo-bg" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '4px 18px 14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <button onClick={onBack} aria-label="Back" style={{
-            appearance: 'none', border: 'none', cursor: 'pointer', background: 'transparent',
-            color: 'var(--fg)', padding: 0,
-          }}>{Icon.back(20)}</button>
+          <BackButton onClick={onBack}/>
           <div className="mono" style={{
             fontSize: 10, letterSpacing: 0.12, textTransform: 'uppercase',
             color: 'var(--fg-dim)',

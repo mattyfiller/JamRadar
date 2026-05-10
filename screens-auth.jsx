@@ -38,10 +38,7 @@ function AuthShell({ title, children, onBack }) {
   return (
     <div className="topo-bg" style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
       <div style={{ padding: '14px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={onBack} aria-label="Back" style={{
-          appearance: 'none', border: 'none', cursor: 'pointer', background: 'transparent',
-          color: 'var(--fg)', padding: 6,
-        }}>{Icon.back(22)}</button>
+        <BackButton onClick={onBack}/>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, letterSpacing: '-0.02em' }}>
           {title}
         </div>
@@ -339,7 +336,7 @@ function Sent({ title, body, onBack }) {
       <p style={{ margin: '0 auto 22px', maxWidth: 320, color: 'var(--fg-muted)', fontSize: 14, lineHeight: 1.5 }}>
         {body}
       </p>
-      <button onClick={onBack} aria-label="Back" className="btn-ghost" style={{ width: '100%' }}>Back</button>
+      <button type="button" onClick={onBack} aria-label="Back" className="btn-ghost" style={{ width: '100%' }}>Back</button>
     </div>
   );
 }

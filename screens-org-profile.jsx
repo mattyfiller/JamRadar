@@ -24,13 +24,7 @@ function OrgProfile({ orgName, events, savedIds, followedOrgs, onToggleFollow, o
           position: 'absolute', left: 0, right: 0, top: 0,
           padding: '10px 14px', display: 'flex', justifyContent: 'space-between',
         }}>
-          <button onClick={onBack} aria-label="Back" style={{
-            appearance: 'none', border: 'none', cursor: 'pointer',
-            width: 40, height: 40, borderRadius: 999,
-            background: 'oklch(0 0 0 / 0.4)', backdropFilter: 'blur(10px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white',
-          }}>{Icon.back(20)}</button>
+          <BackButton onClick={onBack} variant="pill"/>
         </div>
         <div style={{ position: 'absolute', left: 18, right: 18, bottom: 18 }}>
           <div className="mono" style={{

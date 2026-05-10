@@ -64,13 +64,7 @@ function EventDetail({ id, events, onBack, onSave, savedIds, goingIds, onToggleG
           position: 'absolute', left: 0, right: 0, top: 0,
           padding: '10px 14px', display: 'flex', justifyContent: 'space-between',
         }}>
-          <button onClick={onBack} aria-label="Back" style={{
-            appearance: 'none', border: 'none', cursor: 'pointer',
-            width: 40, height: 40, borderRadius: 999,
-            background: 'oklch(0 0 0 / 0.4)', backdropFilter: 'blur(10px)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'white',
-          }}>{Icon.back(20)}</button>
+          <BackButton onClick={onBack} variant="pill"/>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => shareEvent(e)} style={{
               appearance: 'none', border: 'none', cursor: 'pointer',
@@ -1198,10 +1192,7 @@ function NotificationsScreen({ onBack, readIds = [], dynamicNotifs = [], onMarkA
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
       <div style={{ padding: '14px 14px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={onBack} aria-label="Back" style={{
-          appearance: 'none', border: 'none', cursor: 'pointer', background: 'transparent',
-          color: 'var(--fg)', padding: 6,
-        }}>{Icon.back(22)}</button>
+        <BackButton onClick={onBack}/>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 22, letterSpacing: '-0.02em' }}>
           Pings
         </div>
@@ -1289,10 +1280,7 @@ function OrgDashboard({ events, prefs, savedIdsAcrossUsers, followedOrgs, onTogg
     <div className="topo-bg" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <div style={{ padding: '4px 18px 14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-          <button onClick={onBack} aria-label="Back" style={{
-            appearance: 'none', border: 'none', cursor: 'pointer', background: 'transparent',
-            color: 'var(--fg)', padding: 0,
-          }}>{Icon.back(20)}</button>
+          <BackButton onClick={onBack}/>
           <div className="mono" style={{
             fontSize: 10, letterSpacing: 0.12, textTransform: 'uppercase',
             color: 'var(--fg-dim)',
@@ -1575,10 +1563,7 @@ function CreateEventScreen({ prefs, onBack, onPublish, editing, findDuplicates }
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
       <div style={{ padding: '14px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--line-soft)' }}>
-        <button onClick={onBack} aria-label="Back" style={{
-          appearance: 'none', border: 'none', cursor: 'pointer', background: 'transparent',
-          color: 'var(--fg)', padding: 6,
-        }}>{Icon.back(22)}</button>
+        <BackButton onClick={onBack}/>
         <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em', flex: 1 }}>
           {isEdit ? 'Edit event' : 'New event'}
         </div>
