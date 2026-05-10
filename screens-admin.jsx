@@ -41,13 +41,31 @@ function AdminDashboard({ events, onApprove, onReject, onFeature, onVerifyOrg, o
     }
   };
 
-  // De-dup orgs from events for the "Verify orgs" tab.
+  // De-dup orgs from events for the "Verify orgs" tab. An org is considered
+  // verified if ANY of its events is verified — verifyOrg() flips all events
+  // for that org in one action, so partial states should be rare, but if a
+  // single event slipped through (RLS hiccup, retry needed) we still surface
+  // the org as verified so the admin doesn't spam the button.
   const orgs = [];
   events.forEach(e => {
-    if (!orgs.find(o => o.name === e.org)) {
-      orgs.push({ name: e.org, verified: !!e.orgVerified, type: e.indoor ? 'Indoor facility' : 'Mountain' });
+    if (!e.org) return;
+    let row = orgs.find(o => o.name === e.org);
+    if (!row) {
+      row = {
+        name: e.org,
+        verified: false,
+        eventCount: 0,
+        // Pick the most common "type" descriptor across the org's events.
+        // Indoor facilities should never accidentally show "Mountain".
+        type: e.indoor || e.sport === 'indoor' ? 'Indoor facility' : 'Mountain',
+      };
+      orgs.push(row);
     }
+    row.eventCount += 1;
+    if (e.orgVerified) row.verified = true;
   });
+  // Sort: unverified first (admin's queue), then by event count desc.
+  orgs.sort((a, b) => (a.verified - b.verified) || (b.eventCount - a.eventCount));
 
   return (
     <div className="topo-bg" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -161,7 +179,7 @@ function AdminDashboard({ events, onApprove, onReject, onFeature, onVerifyOrg, o
                     {o.verified && <span style={{ color: 'var(--accent)', fontSize: 12 }}>✓</span>}
                   </div>
                   <div className="mono" style={{ fontSize: 10, color: 'var(--fg-dim)', marginTop: 2 }}>
-                    {o.type}
+                    {o.type} · {o.eventCount} event{o.eventCount === 1 ? '' : 's'}
                   </div>
                 </div>
                 {o.verified ? (

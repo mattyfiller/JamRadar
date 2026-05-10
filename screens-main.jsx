@@ -654,10 +654,27 @@ function ListEventRow({ event, onOpen, onSave }) {
           }}>{event.title}</div>
           {event.featured && <FeaturedBadge/>}
         </div>
+        {/* Org line — shows source so riders know who's behind the listing.
+            Verified orgs (admin-audited) get a small ✓ next to the name. */}
+        {event.org && (
+          <div className="mono" style={{
+            fontSize: 10, color: 'var(--fg-dim)', marginTop: 3,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            display: 'flex', alignItems: 'center', gap: 4,
+          }}>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{event.org}</span>
+            {event.orgVerified && (
+              <span style={{ color: 'var(--accent)', fontSize: 11, lineHeight: 1 }} title="Admin-verified organizer">✓</span>
+            )}
+          </div>
+        )}
         <div className="mono" style={{
           fontSize: 10, color: 'var(--fg-muted)', marginTop: 4,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-        }}>{event.when} · {event.distanceKm} km</div>
+        }}>
+          {event.when}
+          {event.distanceKm != null ? ` · ${event.distanceKm} km` : ''}
+        </div>
       </div>
       <button onClick={(e) => { e.stopPropagation(); onSave(event.id); }} style={{
         appearance: 'none', border: 'none', background: 'transparent',
@@ -763,8 +780,17 @@ function MapScreen({ events, prefs, onOpenEvent, savedIds, onSave }) {
                 <span className="mono" style={{ fontSize: 9, color: 'var(--fg-dim)' }}>{sel.coords}</span>
               </div>
               <div style={{ fontWeight: 600, fontSize: 15, marginTop: 6, lineHeight: 1.2 }}>{sel.title}</div>
+              {sel.org && (
+                <div className="mono" style={{
+                  fontSize: 10, color: 'var(--fg-dim)', marginTop: 3,
+                  display: 'flex', alignItems: 'center', gap: 4,
+                }}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sel.org}</span>
+                  {sel.orgVerified && <span style={{ color: 'var(--accent)', fontSize: 11 }}>✓</span>}
+                </div>
+              )}
               <div className="mono" style={{ fontSize: 10, color: 'var(--fg-muted)', marginTop: 4 }}>
-                {sel.when} · {sel.distanceKm} km
+                {sel.when}{sel.distanceKm != null ? ` · ${sel.distanceKm} km` : ''}
               </div>
             </div>
           </div>

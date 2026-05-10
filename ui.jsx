@@ -174,8 +174,11 @@ function EventCard({ event, onOpen, onSave, variant = 'default' }) {
           ? `center/cover no-repeat url(${event.poster})`
           : `linear-gradient(135deg, oklch(0.32 0.04 ${event.color}) 0%, oklch(0.20 0.02 240) 100%)`,
       }}>
-        {/* contour lines */}
-        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.18 }}>
+        {/* contour lines — pointer-events:none so the SVG never absorbs taps
+            intended for the card's onClick or the save button on top. */}
+        <svg width="100%" height="100%" style={{
+          position: 'absolute', inset: 0, opacity: 0.18, pointerEvents: 'none',
+        }}>
           <g fill="none" stroke="white" strokeWidth="1">
             <path d="M-20 30 Q 80 10 180 40 T 380 30"/>
             <path d="M-20 60 Q 80 40 180 70 T 380 60"/>
