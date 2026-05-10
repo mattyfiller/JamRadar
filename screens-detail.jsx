@@ -44,7 +44,12 @@ function EventDetail({ id, events, onBack, onSave, savedIds, goingIds, onToggleG
         height: 280,
         background: `linear-gradient(135deg, oklch(0.40 0.06 ${e.color}) 0%, oklch(0.18 0.02 240) 100%)`,
       }}>
-        <svg width="100%" height="100%" style={{ position: 'absolute', inset: 0, opacity: 0.2 }}>
+        <svg width="100%" height="100%" style={{
+          position: 'absolute', inset: 0, opacity: 0.2,
+          // pointer-events: none so the SVG topo lines never absorb taps
+          // intended for the back / share / save buttons sitting above it.
+          pointerEvents: 'none',
+        }}>
           <g fill="none" stroke="white" strokeWidth="1">
             <path d="M-20 60 Q 80 30 200 60 T 420 50"/>
             <path d="M-20 100 Q 80 70 200 100 T 420 90"/>
