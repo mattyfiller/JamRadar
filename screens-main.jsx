@@ -1177,9 +1177,13 @@ function escapeICS(s) {
 }
 
 // ───────────── GEAR ─────────────
-function GearScreen({ prefs, onOpenListing, onSellGear }) {
+function GearScreen({ prefs, mode: modeProp, onModeChange, onOpenListing, onSellGear }) {
   // Top-level mode: Deals (scraped/affiliate) vs For Sale (peer-to-peer listings).
-  const [mode, setMode] = React.useState('deals');
+  // Controlled by app.jsx so it survives navigation away to a listing detail
+  // and back. Falls back to local state if used standalone.
+  const [localMode, setLocalMode] = React.useState('deals');
+  const mode = modeProp ?? localMode;
+  const setMode = onModeChange || setLocalMode;
   // Sport filter (only used in Deals mode).
   const [filter, setFilter] = React.useState('all');
 

@@ -37,17 +37,30 @@ function App() {
   const [openListingId, setOpenListingId] = React.useState(null);
   const [orgRoute, setOrgRoute] = React.useState('dashboard'); // dashboard | create | edit
   const [shopRoute, setShopRoute] = React.useState('dashboard'); // dashboard | post
+  const [gearMode, setGearMode] = React.useState('deals');       // 'deals' | 'market' — lifted to app so it survives route nav
   const [editingEventId, setEditingEventId] = React.useState(null);
+  // Where did the user open the EventDetail from? Used so the back chevron
+  // returns to admin/org/main instead of unconditionally main.
+  const [eventDetailFrom, setEventDetailFrom] = React.useState('main');
 
   // Switching device mode jumps to the matching dashboard.
   React.useEffect(() => {
     if (tweaks.deviceMode === 'organizer' && route !== 'org') setRoute('org');
     else if (tweaks.deviceMode === 'admin' && route !== 'admin') setRoute('admin');
-    else if (tweaks.deviceMode === 'rider' && (route === 'org' || route === 'admin' || route === 'shop')) setRoute('main');
+    // Shop mode is NOT in this branch on purpose. The shop dashboard can be
+    // reached from any deviceMode (it's a function of accountType, not a
+    // separate device persona) so we don't auto-bounce out of route='shop'
+    // when deviceMode is 'rider'. Only org / admin routes are mode-coupled.
+    else if (tweaks.deviceMode === 'rider' && (route === 'org' || route === 'admin')) setRoute('main');
   }, [tweaks.deviceMode]);
 
-  const openEvent = (id) => {
+  const openEvent = (id, from) => {
     setOpenEventId(id);
+    // Capture origin so EventDetail's back returns the user to where they came
+    // from (admin queue, org dashboard, or rider main). When `from` isn't
+    // explicit, infer from current route — admin/org callers stay in their
+    // mode; everyone else resolves to 'main'.
+    setEventDetailFrom(from || (route === 'admin' ? 'admin' : route === 'org' ? 'org' : 'main'));
     setRoute('detail');
   };
   const openOrg = (name) => {
@@ -63,22 +76,63 @@ function App() {
     setRoute('listing');
   };
 
-  // Deep-link support: /JamRadar.html?event=e1 opens that event on first paint;
-  // /?listing=<uuid> opens a marketplace listing (used by the contact-seller
-  // share intent so a buyer can paste a link back to the seller and have it
-  // open the listing on either device).
-  React.useEffect(() => {
+  // Deep-link state — capture the params on first mount and consume them
+  // once we have the prerequisites (onboarding done + Supabase events loaded).
+  // Without this, two failure modes were possible:
+  //   - First-time user opens a shared listing link → app shows the listing
+  //     but skips onboarding entirely. Their prefs stay at defaults forever.
+  //   - Cold load with ?event=<id> → events array is empty for ~1 second
+  //     while Supabase fetches; the original useEffect ran once and silently
+  //     dropped the param if the event wasn't loaded yet.
+  // Now: park the params, consume after onboarding + when target is loadable.
+  const [pendingDeepLink, setPendingDeepLink] = React.useState(() => {
+    if (typeof window === 'undefined') return null;
     const params = new URLSearchParams(window.location.search);
     const eventId = params.get('event');
     const listingId = params.get('listing');
-    if (eventId && events.find(e => e.id === eventId)) {
-      openEvent(eventId);
-      window.history.replaceState({}, '', window.location.pathname);
-    } else if (listingId) {
-      openListing(listingId);
-      window.history.replaceState({}, '', window.location.pathname);
-    }
+    if (!eventId && !listingId) return null;
+    return { event: eventId, listing: listingId };
+  });
+
+  // Browser-back support: when we open a deep-linked screen, push a real
+  // history entry so iOS/Android system-back returns the user to a clean
+  // /main view instead of exiting the app entirely (was bug A2 from audit).
+  React.useEffect(() => {
+    const onPop = () => {
+      // System back from a JamRadar route → land on rider main.
+      setOpenEventId(null);
+      setOpenListingId(null);
+      setRoute('main');
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
   }, []);
+
+  // Consume the deep link as soon as it's safe.
+  React.useEffect(() => {
+    if (!pendingDeepLink) return;
+    // Don't bypass onboarding. New user hits a shared link → they finish
+    // onboarding first, then the link is consumed automatically.
+    if (!prefs.onboarded) return;
+
+    const { event: eventId, listing: listingId } = pendingDeepLink;
+    if (eventId) {
+      // Wait for the event to be present in the local store. Retry on each
+      // events-array change rather than dropping silently.
+      if (events.find(e => e.id === eventId)) {
+        // Push a real entry so back works properly.
+        window.history.pushState({}, '', window.location.pathname);
+        openEvent(eventId);
+        setPendingDeepLink(null);
+      }
+      return;
+    }
+    if (listingId) {
+      window.history.pushState({}, '', window.location.pathname);
+      openListing(listingId);
+      setPendingDeepLink(null);
+    }
+  }, [pendingDeepLink, prefs.onboarded, events]);
 
   // Build the screen
   let content = null;
@@ -107,7 +161,11 @@ function App() {
       <EventDetail
         id={openEventId}
         events={events}
-        onBack={() => setRoute('main')}
+        onBack={() => {
+          setOpenEventId(null);
+          // Return to the route that opened this event detail (admin/org/main).
+          setRoute(eventDetailFrom || 'main');
+        }}
         onSave={actions.toggleSaved}
         savedIds={savedIds}
         goingIds={goingIds}
@@ -308,6 +366,8 @@ function App() {
       content = (
         <GearScreen
           prefs={prefs}
+          mode={gearMode}
+          onModeChange={setGearMode}
           onOpenListing={openListing}
           onSellGear={() => setRoute('sell')}
         />
@@ -357,7 +417,12 @@ function App() {
       height: '100%', position: 'relative', overflow: 'hidden',
       background: 'var(--bg-base)', color: 'var(--fg)',
     }}>
-      <div key={`${route}-${tab}-${orgRoute}`} style={{
+      {/* No `key` prop — keying on route+tab forced a full unmount on every
+          navigation, blowing away map zoom, Discover scroll position, and
+          GearScreen's deals/for-sale segment selection. Each route renders a
+          different component anyway, so React's reconciler handles diffing
+          fine without forcing remounts. */}
+      <div style={{
         position: 'absolute', inset: 0,
         paddingTop: isPhone
           ? 'calc(env(safe-area-inset-top, 0px) + 8px)'

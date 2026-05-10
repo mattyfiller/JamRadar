@@ -66,7 +66,7 @@ function Onboarding({ onDone, defaults = {} }) {
           minHeight: 32,
         }}>
           {step > 0 && step < totalSteps - 1 ? (
-            <button onClick={back} style={{
+            <button onClick={back} aria-label="Back" style={{
               appearance: 'none', border: 'none', background: 'transparent',
               color: 'var(--fg-dim)', cursor: 'pointer', padding: 0,
               display: 'flex', alignItems: 'center', gap: 4, fontSize: 13,

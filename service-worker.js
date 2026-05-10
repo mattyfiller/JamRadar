@@ -3,7 +3,7 @@
 // stale-while-revalidate for CDN scripts (React, Babel, Leaflet, fonts, tiles);
 // network-first navigation fallback so HTML updates aren't pinned forever.
 
-const VERSION   = 'jamradar-v20';
+const VERSION   = 'jamradar-v21';
 const CACHE     = `${VERSION}-shell`;
 const RUNTIME   = `${VERSION}-runtime`;
 
@@ -38,8 +38,17 @@ const APP_SHELL = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((c) => c.addAll(APP_SHELL)).then(() => self.skipWaiting())
+    caches.open(CACHE).then((c) => c.addAll(APP_SHELL))
   );
+  // We no longer skipWaiting() unconditionally on install. The page-side
+  // updatefound handler explicitly posts SKIP_WAITING when it's safe to
+  // swap, then listens for controllerchange to reload. Keeps the in-flight
+  // page from getting torn down mid-action.
+});
+
+// Allow the page to trigger a takeover when it's ready (see HTML registration).
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {

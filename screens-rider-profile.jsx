@@ -29,7 +29,7 @@ function RiderProfile({ riderId, events, savedIds, onOpenEvent, onSave, onBack }
     return (
       <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
         <div style={{ padding: '14px 14px', display: 'flex', alignItems: 'center', gap: 8, borderBottom: '1px solid var(--line-soft)' }}>
-          <button onClick={onBack} style={{
+          <button onClick={onBack} aria-label="Back" style={{
             appearance: 'none', border: 'none', cursor: 'pointer', background: 'transparent',
             color: 'var(--fg)', padding: 6,
           }}>{Icon.back(22)}</button>
@@ -91,7 +91,7 @@ function RiderProfile({ riderId, events, savedIds, onOpenEvent, onSave, onBack }
           position: 'absolute', left: 0, right: 0, top: 0,
           padding: '10px 14px', display: 'flex', justifyContent: 'space-between',
         }}>
-          <button onClick={onBack} style={{
+          <button onClick={onBack} aria-label="Back" style={{
             appearance: 'none', border: 'none', cursor: 'pointer',
             width: 40, height: 40, borderRadius: 999,
             background: 'oklch(0 0 0 / 0.4)', backdropFilter: 'blur(10px)',

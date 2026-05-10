@@ -98,10 +98,42 @@
 <script type="text/babel" src="app.jsx"></script>
 
 <script>
-  // Register the service worker for offline + installability.
+  // Register the service worker + auto-reload when a new version activates.
+  // Without this, users stay on stale code indefinitely after we ship a fix —
+  // PWAs on iOS/Android can stay open for days, and skipWaiting on the new SW
+  // doesn't force the live page to re-execute, only NEW navigations get the
+  // fresh code. The controllerchange listener catches the takeover moment and
+  // reloads the page so the newly-cached .jsx files actually run.
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
+      let reloading = false;
+      // Reload exactly once when the new SW takes over. Guard against the
+      // double-fire that happens on some browsers (Chrome on Android).
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (reloading) return;
+        reloading = true;
+        window.location.reload();
+      });
       navigator.serviceWorker.register('service-worker.js')
+        .then((reg) => {
+          // If a new SW is waiting on first registration (rare on first install),
+          // tell it to take over — the controllerchange handler above then
+          // reloads the page.
+          if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          // After the page is loaded, every time SW finds an update we let it
+          // install + activate; controllerchange triggers the reload.
+          reg.addEventListener('updatefound', () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                // A previous version is currently controlling — the new one is
+                // just sitting in 'waiting'. Tell it to skip and take over.
+                newWorker.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
+          });
+        })
         .catch((err) => console.warn('SW register failed:', err));
     });
   }
