@@ -67,6 +67,16 @@ function useJamStore() {
   const [state, setState] = React.useState(initial);
   const [user, setUser] = React.useState(null);  // current Supabase user, or null
 
+  // Refs that always hold the LATEST state + user. Actions are memoized with
+  // empty deps for stable identity (so consumer components don't re-render
+  // every keystroke), so they need to read these refs instead of closing
+  // over stale values from the first render — which would mean every server
+  // write fires with user=null forever, even after sign-in.
+  const stateRef = React.useRef(state);
+  const userRef  = React.useRef(user);
+  React.useEffect(() => { stateRef.current = state; }, [state]);
+  React.useEffect(() => { userRef.current  = user;  }, [user]);
+
   // Persist locally on every change.
   React.useEffect(() => { saveStore(state); }, [state]);
 
@@ -136,6 +146,7 @@ function useJamStore() {
         ],
       })),
     publishEvent: (event) => {
+      const user = userRef.current;
       // Optimistic local insert so the UI updates immediately.
       setState(s => ({ ...s, events: [event, ...s.events] }));
       // If Supabase is wired, mirror to the DB so other devices see it.
@@ -145,6 +156,7 @@ function useJamStore() {
       }
     },
     editEvent: (id, patch) => {
+      const user = userRef.current;
       setState(s => ({ ...s, events: s.events.map(e =>
         e.id === id ? { ...e, ...patch } : e) }));
       if (window.JR_SUPABASE_READY && user) {
@@ -153,6 +165,7 @@ function useJamStore() {
       }
     },
     approveEvent: (id) => {
+      const user = userRef.current;
       setState(s => {
         const ev = s.events.find(e => e.id === id);
         const events = s.events.map(e => e.id === id ? { ...e, status: 'approved' } : e);
@@ -175,6 +188,7 @@ function useJamStore() {
       }
     },
     rejectEvent: (id) => {
+      const user = userRef.current;
       setState(s => ({ ...s, events: s.events.filter(e => e.id !== id) }));
       if (window.JR_SUPABASE_READY && user) {
         editOnServer(id, { status: 'rejected' }).catch(e =>
@@ -182,6 +196,7 @@ function useJamStore() {
       }
     },
     featureEvent: (id) => {
+      const user = userRef.current;
       let willBeFeatured = false;
       setState(s => {
         const ev = s.events.find(e => e.id === id);
@@ -209,6 +224,8 @@ function useJamStore() {
     // with our application_fee skim — same insert path, the Buy button just
     // routes through Stripe and the webhook flips status='sold'.
     publishListing: async (listing) => {
+      const user  = userRef.current;
+      const state = stateRef.current;
       if (!window.JR_SUPABASE_READY || !user) {
         throw new Error('Sign in first to list gear.');
       }
@@ -260,6 +277,7 @@ function useJamStore() {
     // for admin review. RLS gates promotion fields server-side; the client
     // also explicitly omits them. Resolves to the inserted row on success.
     publishDeal: async (deal) => {
+      const user = userRef.current;
       if (!window.JR_SUPABASE_READY || !user) {
         throw new Error('Supabase not configured / not signed in');
       }
@@ -299,6 +317,8 @@ function useJamStore() {
     // org_name matches. Optimistic local update + server write for each
     // affected event. Server-side RLS gates this to admins (events_admin_update).
     verifyOrg: (orgName) => {
+      const user  = userRef.current;
+      const state = stateRef.current;
       const targets = state.events.filter(e => e.org === orgName && !e.orgVerified);
       setState(s => ({
         ...s,
@@ -312,11 +332,11 @@ function useJamStore() {
       }
     },
     // Fuzzy dedupe — exposed so CreateEvent can pre-flight check before insert.
-    findDuplicates: (candidate) => findDuplicates(candidate, state.events),
+    findDuplicates: (candidate) => findDuplicates(candidate, stateRef.current.events),
     // Pending-merges actions used by the Admin → Pending Merges tab. All
     // no-op if Supabase isn't configured (the queue lives there, not locally).
     fetchPendingMerges: () => fetchPendingMerges(),
-    resolvePendingMerge: (id, action) => resolvePendingMerge(id, action, user),
+    resolvePendingMerge: (id, action) => resolvePendingMerge(id, action, userRef.current),
     // Live gear_deals — auto-approved by the ingest pipeline, public-readable
     // via the gear_deals_public_read RLS policy. Returns [] if Supabase isn't
     // configured; GearScreen falls back to seed data in that case.
