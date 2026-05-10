@@ -63,14 +63,19 @@ function App() {
     setRoute('listing');
   };
 
-  // Deep-link support: /JamRadar.html?event=e1 opens that event on first paint.
-  // Useful when a rider shares an event URL via the share button.
+  // Deep-link support: /JamRadar.html?event=e1 opens that event on first paint;
+  // /?listing=<uuid> opens a marketplace listing (used by the contact-seller
+  // share intent so a buyer can paste a link back to the seller and have it
+  // open the listing on either device).
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const eventId = params.get('event');
+    const listingId = params.get('listing');
     if (eventId && events.find(e => e.id === eventId)) {
       openEvent(eventId);
-      // Clean the URL so a refresh / back doesn't re-trigger the deep-link.
+      window.history.replaceState({}, '', window.location.pathname);
+    } else if (listingId) {
+      openListing(listingId);
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, []);
@@ -209,24 +214,38 @@ function App() {
     content = (
       <ListingDetail
         listingId={openListingId}
-        onBack={() => { setOpenListingId(null); setRoute('main'); }}
+        onBack={() => { setOpenListingId(null); setRoute('main'); setTab('gear'); }}
+        onMarkSold={actions.markListingSold}
+        onWithdraw={actions.withdrawListing}
       />
     );
   } else if (route === 'sell') {
-    content = (
-      <PostListingScreen
-        prefs={prefs}
-        onPublish={async (listing) => {
-          try {
-            await actions.publishListing(listing);
-            setRoute('main'); setTab('gear');
-          } catch (e) {
-            window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: e.message || 'Failed to list' } }));
-          }
-        }}
-        onBack={() => { setRoute('main'); setTab('gear'); }}
-      />
-    );
+    // Gate the sell flow on auth — without a session, the photo upload would
+    // toast "Sign in first" and the publish would throw, with no way out.
+    // Bouncing them to the auth screen keeps the flow legible.
+    if (!user) {
+      content = (
+        <AuthScreen
+          onClose={() => { setRoute('main'); setTab('gear'); }}
+          onSignedIn={() => setRoute('sell')}
+        />
+      );
+    } else {
+      content = (
+        <PostListingScreen
+          prefs={prefs}
+          onPublish={async (listing) => {
+            try {
+              await actions.publishListing(listing);
+              setRoute('main'); setTab('gear');
+            } catch (e) {
+              window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: e.message || 'Failed to list' } }));
+            }
+          }}
+          onBack={() => { setRoute('main'); setTab('gear'); }}
+        />
+      );
+    }
   } else if (route === 'shop') {
     if (shopRoute === 'post') {
       content = (
@@ -307,6 +326,7 @@ function App() {
           onSignOut={async () => { await window.JR_AUTH?.signOut(); }}
           onSetPrefs={actions.setPrefs}
           onSwitchToOrgMode={() => { setTweak('deviceMode', 'organizer'); setRoute('org'); }}
+          onSwitchToShopMode={() => { setRoute('shop'); }}
           onSwitchToAdminMode={() => { setTweak('deviceMode', 'admin'); setRoute('admin'); }}
           onResetAll={actions.resetAll}
         />

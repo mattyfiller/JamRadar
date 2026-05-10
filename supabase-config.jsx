@@ -33,6 +33,10 @@ const JR_SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
       detectSessionInUrl: true,  // needed for magic-link + OAuth redirects
     },
   });
+  // Expose the project URL so non-Supabase code (e.g. the photo-URL validator
+  // in store.jsx publishListing) can derive the storage public-URL prefix.
+  // The URL itself is not a secret; only the service-role key is.
+  window.JR_SUPABASE_URL = JR_SUPABASE_URL;
   window.JR_SUPABASE_READY = true;
   console.info('[JamRadar] Supabase initialised.');
 })();

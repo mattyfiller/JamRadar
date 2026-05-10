@@ -481,7 +481,7 @@ function StatCell({ label, value, highlight, hot }) {
 }
 
 // ───────────── PROFILE ─────────────
-function ProfileScreen({ prefs, savedIds, goingIds, events, user, onOpenAuth, onSignOut, onSetPrefs, onSwitchToOrgMode, onSwitchToAdminMode, onResetAll }) {
+function ProfileScreen({ prefs, savedIds, goingIds, events, user, onOpenAuth, onSignOut, onSetPrefs, onSwitchToOrgMode, onSwitchToShopMode, onSwitchToAdminMode, onResetAll }) {
   const [editing, setEditing] = React.useState(null); // 'sports' | 'radius' | 'types' | 'notif' | 'skill'
 
   const sportLabels = (prefs?.sports || [])
@@ -615,11 +615,15 @@ function ProfileScreen({ prefs, savedIds, goingIds, events, user, onOpenAuth, on
           <InstallPromptRow/>
         </div>
 
-        <SectionLabel kicker="Modes" label="For organizers and admins"/>
+        <SectionLabel kicker="Modes" label="For organizers, shops, and admins"/>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <ModeCard
             title="Switch to organizer mode" sub="Post events, see analytics"
             onClick={onSwitchToOrgMode}
+          />
+          <ModeCard
+            title="Switch to shop mode" sub="Post gear deals, see your dashboard"
+            onClick={onSwitchToShopMode}
           />
           <ModeCard
             title="Switch to admin mode" sub="Approve events, verify orgs"

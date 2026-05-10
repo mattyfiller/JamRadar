@@ -190,13 +190,18 @@ function ListingCard({ listing, onClick }) {
 // ─────────────────────────────────────────────────────────────
 // ListingDetail — full-screen view of one listing, with contact CTA.
 // ─────────────────────────────────────────────────────────────
-function ListingDetail({ listingId, onBack }) {
+function ListingDetail({ listingId, onBack, onMarkSold, onWithdraw }) {
   const [listing, setListing] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [photoIndex, setPhotoIndex] = React.useState(0);
 
   React.useEffect(() => {
-    if (!listingId || !window.JR_SUPABASE) return;
+    // Resolve loading=false synchronously when there's nothing to fetch —
+    // otherwise the screen sits at "Loading…" forever in degraded states.
+    if (!listingId || !window.JR_SUPABASE) {
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -246,22 +251,74 @@ function ListingDetail({ listingId, onBack }) {
   const categoryMeta  = CATEGORIES.find(c => c.id === listing.category);
   const shippingLabel = (SHIPPING_OPTS.find(s => s.id === listing.shipping) || {}).label;
 
-  // Contact: open the OS share sheet with a pre-written intro. Same pattern as
-  // RiderProfile's "send a wave". Buyer can pick their channel of choice.
+  // Detect authenticated buyer + whether they're the seller themselves.
+  const [viewerId, setViewerId] = React.useState(null);
+  React.useEffect(() => {
+    if (!window.JR_SUPABASE) return;
+    window.JR_SUPABASE.auth.getUser().then(({ data }) => {
+      setViewerId(data?.user?.id || null);
+    });
+  }, []);
+  const isOwner = viewerId && listing.seller_user_id === viewerId;
+  const isAuthed = !!viewerId;
+
+  // Reveal-state for contact info — keeps it from showing in screenshots /
+  // anonymous browsers, only authenticated viewers can see it.
+  const [revealed, setRevealed] = React.useState(false);
+
+  // Try to detect what kind of contact the seller posted and route the OS to
+  // the most useful action.
+  const contactKind = React.useMemo(() => {
+    const c = (listing.contact_info || '').trim();
+    if (!c) return null;
+    if (/^@/.test(c) || /instagram|insta/i.test(c)) {
+      const handle = c.replace(/^@/, '').split(/[\s,]/)[0];
+      return { kind: 'instagram', display: c, openUrl: `https://instagram.com/${handle}` };
+    }
+    if (/^[\w.+-]+@[\w-]+\.[\w.-]+$/.test(c)) {
+      return { kind: 'email', display: c, openUrl: `mailto:${c}?subject=${encodeURIComponent('Your "' + listing.title + '" on JamRadar')}` };
+    }
+    if (/^[+\d][\d\s().-]{6,}$/.test(c)) {
+      return { kind: 'phone', display: c, openUrl: `sms:${c.replace(/[^\d+]/g, '')}` };
+    }
+    return { kind: 'text', display: c, openUrl: null };
+  }, [listing.contact_info, listing.title]);
+
   const contactSeller = async () => {
-    const text = `Hey ${listing.seller_name || 'there'} — interested in your "${listing.title}" on JamRadar.`;
-    const shareUrl = (typeof location !== 'undefined' ? location.origin : 'https://jamradar.netlify.app')
-      + '/?listing=' + encodeURIComponent(listing.id);
-    if (navigator.share) {
-      try { await navigator.share({ title: 'JamRadar', text, url: shareUrl }); return; }
-      catch (e) { if (e.name === 'AbortError') return; }
+    if (!isAuthed) {
+      window.dispatchEvent(new CustomEvent('jr:toast', {
+        detail: { msg: 'Sign in to see seller contact info' },
+      }));
+      return;
     }
-    try {
-      await navigator.clipboard.writeText(`${text}\n${shareUrl}`);
-      window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: 'Message copied — paste anywhere' } }));
-    } catch {
-      window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: 'Could not open share sheet' } }));
+    if (!contactKind) {
+      window.dispatchEvent(new CustomEvent('jr:toast', {
+        detail: { msg: "Seller didn't add contact info" },
+      }));
+      return;
     }
+    setRevealed(true);
+    if (contactKind.openUrl) {
+      window.open(contactKind.openUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      try {
+        await navigator.clipboard.writeText(contactKind.display);
+        window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: 'Contact copied' } }));
+      } catch { /* clipboard blocked — the reveal still shows the info on-screen */ }
+    }
+  };
+
+  const markSold = async () => {
+    if (!onMarkSold) return;
+    await onMarkSold(listing.id);
+    window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: 'Marked sold' } }));
+    onBack?.();
+  };
+  const withdraw = async () => {
+    if (!onWithdraw) return;
+    await onWithdraw(listing.id);
+    window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: 'Listing withdrawn' } }));
+    onBack?.();
   };
 
   return (
@@ -337,17 +394,50 @@ function ListingDetail({ listingId, onBack }) {
         </div>
       </div>
 
-      {/* Sticky CTA */}
+      {/* Sticky CTA — different for owner vs buyer */}
       <div style={{
         borderTop: '1px solid var(--line-soft)',
         padding: '14px 18px 30px',
         background: 'oklch(0.18 0.018 240 / 0.92)',
         backdropFilter: 'blur(14px)',
-        display: 'flex', gap: 10,
       }}>
-        <button onClick={contactSeller} className="btn-accent" style={{ flex: 1 }}>
-          Contact seller
-        </button>
+        {isOwner ? (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={markSold} className="btn-accent" style={{ flex: 1 }}>
+              Mark sold
+            </button>
+            <button onClick={withdraw} className="btn-ghost" style={{ flex: 1 }}>
+              Withdraw
+            </button>
+          </div>
+        ) : revealed && contactKind ? (
+          <div>
+            <div className="mono" style={{
+              fontSize: 9, letterSpacing: 0.12, textTransform: 'uppercase',
+              color: 'var(--fg-dim)', marginBottom: 4,
+            }}>Seller contact</div>
+            <div style={{
+              padding: '10px 14px', borderRadius: 10,
+              background: 'var(--bg-surface)', border: '1px solid var(--accent)',
+              color: 'var(--accent)', fontWeight: 600, fontSize: 14,
+              wordBreak: 'break-all',
+            }}>{contactKind.display}</div>
+            <div className="mono" style={{ fontSize: 9, color: 'var(--fg-dim)', marginTop: 6, letterSpacing: 0.06 }}>
+              {contactKind.kind === 'email'     ? 'Tapped to open Mail.'
+                : contactKind.kind === 'phone'   ? 'Tapped to open Messages.'
+                : contactKind.kind === 'instagram' ? 'Tapped to open Instagram.'
+                : 'Copied to your clipboard.'}
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={contactSeller}
+            className="btn-accent"
+            style={{ width: '100%' }}
+          >
+            {isAuthed ? 'Reveal seller contact' : 'Sign in to see contact'}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -381,10 +471,14 @@ function PostListingScreen({ prefs, onPublish, onBack }) {
   const [brand, setBrand]               = React.useState('');
   const [size, setSize]                 = React.useState('');
   const [condition, setCondition]       = React.useState('used');
-  const [sport, setSport]               = React.useState((prefs?.sports?.[0]) || 'snowboard');
+  // Default to a sport the user actually has, but skip "indoor" — used-gear
+  // categories don't make sense for indoor training sessions.
+  const initialSport = ((prefs?.sports || []).find(s => s !== 'indoor')) || 'snowboard';
+  const [sport, setSport]               = React.useState(initialSport);
   const [category, setCategory]         = React.useState('');
   const [price, setPrice]               = React.useState('');
   const [shipping, setShipping]         = React.useState('local-only');
+  const [contactInfo, setContactInfo]   = React.useState('');
   const [photos, setPhotos]             = React.useState([]);     // public URLs
   const [uploading, setUploading]       = React.useState(false);
   const [posting, setPosting]           = React.useState(false);
@@ -393,6 +487,7 @@ function PostListingScreen({ prefs, onPublish, onBack }) {
   const canPublish = title.trim().length > 0
     && Number.isFinite(priceNum) && priceNum > 0
     && photos.length > 0
+    && contactInfo.trim().length > 0
     && !uploading && !posting;
 
   const onPickPhotos = async (e) => {
@@ -442,6 +537,7 @@ function PostListingScreen({ prefs, onPublish, onBack }) {
         photos,
         location: prefs?.city || null,
         shipping,
+        contact_info: contactInfo.trim() || null,
       });
     } finally {
       setPosting(false);
@@ -639,8 +735,21 @@ function PostListingScreen({ prefs, onPublish, onBack }) {
           />
         </FormField>
 
+        <FormField label="How buyers reach you (required)">
+          <input
+            value={contactInfo}
+            onChange={(e) => setContactInfo(e.target.value)}
+            placeholder="@yourhandle, you@email.com, or 555-1234"
+            maxLength={140}
+            style={fieldStyle}
+          />
+          <div className="mono" style={{ fontSize: 9, color: 'var(--fg-dim)', marginTop: 4, letterSpacing: 0.06 }}>
+            Visible to anyone signed in who opens this listing. Phone, email, or social handle — whatever you'd rather get a message on.
+          </div>
+        </FormField>
+
         <p className="mono" style={{ fontSize: 10, color: 'var(--fg-dim)', lineHeight: 1.5, marginTop: 12 }}>
-          Your listing goes live immediately. Buyers tap "Contact seller" to reach you via the OS share sheet (Messages / Mail / WhatsApp). In-app payments with our small fee are coming as Phase 2 — you'll be able to opt in then.
+          Your listing goes live immediately. Buyers see your contact info and reach out directly. In-app payments with our small fee are coming as Phase 2 — you'll be able to opt in then.
         </p>
       </div>
 

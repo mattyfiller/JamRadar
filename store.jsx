@@ -88,11 +88,14 @@ function useJamStore() {
     (async () => {
       const u = await window.JR_AUTH.getUser();
       if (!cancelled) setUser(u);
-      if (u) await syncOnSignIn(u, state, setState);
+      // Read latest state via ref — using closed-over `state` here would push
+      // the component's INITIAL state to the server (DEFAULT_PREFS) on first
+      // sign-in, overwriting whatever the user just selected during onboarding.
+      if (u) await syncOnSignIn(u, stateRef.current, setState);
     })();
     const unsub = window.JR_AUTH.onAuthChange(async (newUser) => {
       setUser(newUser);
-      if (newUser) await syncOnSignIn(newUser, state, setState);
+      if (newUser) await syncOnSignIn(newUser, stateRef.current, setState);
     });
     return () => { cancelled = true; unsub?.(); };
   }, []);
@@ -229,10 +232,22 @@ function useJamStore() {
       if (!window.JR_SUPABASE_READY || !user) {
         throw new Error('Sign in first to list gear.');
       }
+      // Don't fall back to the email prefix — that would denormalize a piece
+      // of the user's login email into a public column. "Rider" is preferable
+      // privacy-wise; the user can always set a display name on their profile.
+      const sellerName = state.prefs.displayName?.trim() || 'Rider';
+      // Validate photo URLs: only accept paths from our own posters bucket.
+      // Without this, a malicious seller could set photos to attacker URLs
+      // and we'd render them in every browser that opens the listing.
+      const projectUrl = window.JR_SUPABASE_URL || '';
+      const allowedPrefix = projectUrl ? projectUrl + '/storage/v1/object/public/posters/' : '';
+      const photos = (listing.photos || []).filter(u =>
+        typeof u === 'string' && allowedPrefix && u.startsWith(allowedPrefix)
+      );
       const sb = window.JR_SUPABASE;
       const row = {
         seller_user_id: user.id,
-        seller_name:    state.prefs.displayName?.trim() || (user.email?.split('@')[0]) || 'Rider',
+        seller_name:    sellerName,
         title:          listing.title,
         description:    listing.description || null,
         brand:          listing.brand || null,
@@ -242,10 +257,11 @@ function useJamStore() {
         category:       listing.category || null,
         price:          listing.price,
         currency:       listing.currency || 'USD',
-        photos:         listing.photos || [],
+        photos,
         location:       listing.location || null,
         shipping:       listing.shipping || 'local-only',
         shipping_cost:  listing.shipping_cost || null,
+        contact_info:   (listing.contact_info || '').trim() || null,
       };
       const { data, error } = await sb.from('gear_listings').insert([row]).select();
       if (error) throw new Error(error.message);

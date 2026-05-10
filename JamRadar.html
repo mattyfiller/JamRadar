@@ -47,12 +47,31 @@
 <script src="https://unpkg.com/@supabase/supabase-js@2.45.0/dist/umd/supabase.js"></script>
 
 <!-- ───────── Skimlinks affiliate auto-rewrite (Phase 1 monetization) ─────────
-     Once you sign up at https://skimlinks.com (free, ~24h approval), get your
-     publisher ID and uncomment the block below. Skimlinks will automatically
-     detect outbound merchant URLs (Tactics, Last Hunt, Burton, etc.) on every
-     page view and rewrite them to include your tracking. Every click that
-     converts to a sale earns ~75% of the merchant commission.
-     No code changes needed beyond uncommenting + replacing YOUR-PUBLISHER-ID.
+     Sign up at https://skimlinks.com (free, ~24h approval). When approved
+     you'll have a publisher ID. To activate:
+
+       1. Replace YOUR-PUBLISHER-ID below.
+       2. Uncomment BOTH script blocks (the config one, then the loader).
+       3. Push.
+
+     The skimOptions config below is critical — without it, Skimlinks would
+     also rewrite our internal share-deep-links (?event=, ?listing=) and
+     attempt to double-tag our own merchant URLs (which gear-deals.js
+     already routes through Skimlinks via affiliate networks). The
+     skipDomains list keeps internal nav clean; the noSkim CSS class lets
+     specific anchors opt out individually.
+
+     Internal anchors that should NOT be rewritten can be tagged with
+     class="noskim" — e.g. the "Sell your gear" link, internal nav, etc.
+     Currently none of our anchors target merchant domains, so this is
+     more of a future-proofing safety net.
+<script type="text/javascript">
+  window.skimOptions = {
+    skipDomains: ['jamradar.netlify.app', 'localhost'],
+    skipUTM: false,
+    noSkim: 'noskim'
+  };
+</script>
 <script type="text/javascript" src="https://s.skimresources.com/js/YOUR-PUBLISHER-ID.skimlinks.js"></script>
      ─────────────────────────────────────────────────────────────────────── -->
 </head>

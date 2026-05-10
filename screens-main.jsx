@@ -1159,7 +1159,10 @@ function GearScreen({ prefs, onOpenListing, onSellGear }) {
         }}>
           {[
             { id: 'deals',  label: `Deals (${allDeals.length})` },
-            { id: 'market', label: `For sale (${listings.length})` },
+            // Count only active listings — fetchGearListings filters server-side,
+            // but RLS lets sellers self-read their own withdrawn/sold rows. Keep
+            // the count consistent with what MarketplaceList actually renders.
+            { id: 'market', label: `For sale (${listings.filter(l => l.status === 'active').length})` },
           ].map(seg => {
             const on = mode === seg.id;
             return (
