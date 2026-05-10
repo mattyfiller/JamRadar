@@ -57,7 +57,8 @@ function RiderProfile({ riderId, events, savedIds, onOpenEvent, onSave, onBack }
   // so we share via the OS share API and let the user pick how to reach out
   // (Messages, WhatsApp, Mail, copy link). Falls back to clipboard.
   const wave = async () => {
-    const text = `Hey ${rider.name || 'there'} — caught your profile on JamRadar. Want to ride sometime?`;
+    const firstName = (rider.name || '').split(/\s+/)[0] || 'there';
+    const text = `Hey ${firstName} — caught your profile on JamRadar. Want to ride sometime?`;
     const shareUrl = (typeof location !== 'undefined' ? location.origin : 'https://jamradar.netlify.app') + '/?rider=' + encodeURIComponent(riderId);
     if (navigator.share) {
       try {
@@ -117,7 +118,7 @@ function RiderProfile({ riderId, events, savedIds, onOpenEvent, onSave, onBack }
               margin: 0, fontFamily: 'var(--font-display)', fontWeight: 700,
               fontSize: 24, letterSpacing: '-0.025em', lineHeight: 1.05,
               color: 'white', textShadow: '0 2px 18px oklch(0 0 0 / 0.5)',
-            }}>{rider.name}</h1>
+            }}>{(rider.name || '').split(/\s+/)[0] || 'Rider'}</h1>
             <div className="mono" style={{
               fontSize: 11, color: 'oklch(1 0 0 / 0.85)', marginTop: 4,
               letterSpacing: 0.06, textTransform: 'uppercase',

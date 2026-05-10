@@ -342,30 +342,33 @@ function EventDetail({ id, events, onBack, onSave, savedIds, goingIds, onToggleG
         }}>{Icon.bookmark(18, saved)}</button>
         <button
           onClick={() => {
-            const free = e.cost === 'Free' || (e.cost && e.cost.toLowerCase().startsWith('free'));
-            if (free) {
+            // Match the button-label logic exactly so behavior never diverges
+            // from what the label promises.
+            const looksFree = !e.cost
+              || e.cost === 'Free'
+              || (typeof e.cost === 'string' && e.cost.toLowerCase().startsWith('free'));
+            if (looksFree || !e.regLink) {
               onToggleGoing?.(id);
               return;
             }
-            // Paid event: open the organizer's registration link if provided.
-            if (e.regLink) {
-              window.open(e.regLink, '_blank', 'noopener,noreferrer');
-            } else {
-              // Fall back to local "going" toggle so the button isn't dead.
-              onToggleGoing?.(id);
-              window.dispatchEvent(new CustomEvent('jr:toast', {
-                detail: { msg: 'No registration link from organizer' },
-              }));
-            }
+            // Paid + real link → take them out to register.
+            window.open(e.regLink, '_blank', 'noopener,noreferrer');
           }}
           className="btn-accent"
           style={{ flex: 1 }}
         >
-          {(e.cost === 'Free' || (e.cost && e.cost.toLowerCase().startsWith('free')))
-            ? (going ? "You're in ✓" : "I'm going")
-            : e.regLink
-              ? 'Register · ' + e.cost                  // real link → take them out
-              : (going ? "You're in ✓" : "I'm going")}  // no link → just toggle going so the button label matches behavior
+          {(() => {
+            // Free / no-cost / unknown-cost events: just toggle going.
+            const looksFree = !e.cost
+              || e.cost === 'Free'
+              || (typeof e.cost === 'string' && e.cost.toLowerCase().startsWith('free'));
+            if (looksFree) return going ? "You're in ✓" : "I'm going";
+            // Paid event with no real registration link → also just toggle going,
+            // because the button can't actually take them anywhere.
+            if (!e.regLink) return going ? "You're in ✓" : "I'm going";
+            // Paid + has link → outbound to register.
+            return `Register · ${e.cost}`;
+          })()}
         </button>
       </div>
     </div>

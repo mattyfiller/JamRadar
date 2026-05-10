@@ -1,9 +1,17 @@
 // JamRadar — Riders tab
 // Standalone screen for browsing other riders. Pulls live opted-in users from
-// Supabase via window.JR_FETCH_RIDERS, supplements with seed RIDERS while the
-// user base is small. Filters by sport + availability.
+// Supabase via window.JR_FETCH_RIDERS. Seed RIDERS were removed — testers were
+// confused by hand-crafted fake names appearing alongside real users.
 
-const { SPORTS: _RT_SPORTS, RIDERS: _RT_SEED_RIDERS } = window.JR_DATA;
+const { SPORTS: _RT_SPORTS } = window.JR_DATA;
+
+// Strip surnames from a display name. Riders signal first-name-basis culture;
+// the Riders tab shows only first names + initials. Supabase still stores the
+// full display_name (used inside the user's own profile + for org accounts).
+function firstNameOnly(s) {
+  if (!s) return '';
+  return String(s).split(/\s+/)[0] || '';
+}
 
 function RidersScreen({ prefs, onOpenRider }) {
   const [realRiders, setRealRiders] = React.useState([]);
@@ -26,13 +34,9 @@ function RidersScreen({ prefs, onOpenRider }) {
     return () => { cancelled = true; clearInterval(t); };
   }, []);
 
-  // Show seed riders ONLY when there are no live ones AND we're not still
-  // loading. Once even one real opted-in rider arrives, the seeds are hidden
-  // — testers shouldn't see fake names sitting next to their friends.
-  const useSeeds = !loading && realRiders.length === 0;
-  const all = useSeeds
-    ? (_RT_SEED_RIDERS || []).map(r => ({ ...r, _seed: true }))
-    : realRiders;
+  // No more seeds. Riders tab is empty until real users opt in via the
+  // "Open to ride" toggle on their profile. Empty-state copy guides them.
+  const all = realRiders.map(r => ({ ...r, name: firstNameOnly(r.name) }));
 
   const filtered = all
     .filter(r => !filterSport || (r.sports || []).includes(filterSport))
@@ -88,7 +92,7 @@ function RidersScreen({ prefs, onOpenRider }) {
           {loading ? 'Loading…' :
             realCount > 0
               ? `${realCount} live rider${realCount === 1 ? '' : 's'} open to ride`
-              : `${filtered.length} sample · live profiles populate as testers join`}
+              : 'No riders yet — opt in below to be the first.'}
         </div>
       </div>
 

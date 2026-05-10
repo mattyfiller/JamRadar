@@ -462,9 +462,14 @@ async function fetchEventsFromServer() {
   try {
     const sb = window.JR_SUPABASE;
     if (!sb) return null;
+    // Only approved events should reach the rider feed. The previous SELECT *
+    // pulled archived rows too (RLS allows anyone to read 'archived'), which
+    // is why old past-season events were showing up on Discover for weeks
+    // after the auto-archive cron should have hidden them.
     const { data, error } = await sb
       .from('events')
       .select('*')
+      .eq('status', 'approved')
       .order('starts_at', { ascending: true });
     if (error) {
       console.warn('[JamRadar] events fetch failed:', error.message);
@@ -519,6 +524,7 @@ function rowToEvent(row) {
     type:         row.type,
     skill:        row.skill_level,
     when:         row.when_text || '',
+    startsAt:     row.starts_at || null,        // ISO timestamp; used by Discover date filter
     cost:         row.cost,
     prize:        row.prize,
     regLink:      row.reg_link,

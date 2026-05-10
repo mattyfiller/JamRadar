@@ -5,6 +5,38 @@ const { GEAR_DEALS, SPORTS, EVENT_TYPES } = window.JR_DATA;
 // Hide events still pending admin approval from the rider feed.
 const visibleToRiders = (e) => e.status !== 'pending';
 
+// Parse the human-readable "when" string ("Sat · Mar 14 · 7:00 PM") into a
+// millisecond timestamp. Used by the Discover date filter as a fallback when
+// the canonical starts_at column wasn't populated by the scraper. Returns
+// null if we can't pin a specific date — caller decides what to do (we hide
+// such events to avoid stale-listing pollution).
+const _MONTHS_LOOKUP = { jan:0, feb:1, mar:2, apr:3, may:4, jun:5, jul:6, aug:7, sep:8, oct:9, nov:10, dec:11 };
+function whenStringToTime(when) {
+  if (!when) return null;
+  const s = String(when).trim();
+  // ISO date or datetime — pass through.
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const t = new Date(s).getTime();
+    return Number.isNaN(t) ? null : t;
+  }
+  // "Sat · Nov 14 · 7:00 PM" / "Mon · Dec 30" style.
+  const m = s.toLowerCase().match(/(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+(\d{1,2})(?:.*?(\d{1,2}):(\d{2})\s*(am|pm)?)?/);
+  if (!m) return null;
+  const month = _MONTHS_LOOKUP[m[1]];
+  const day   = parseInt(m[2], 10);
+  let hour    = m[3] ? parseInt(m[3], 10) : 12;
+  const min   = m[4] ? parseInt(m[4], 10) : 0;
+  if (m[5] === 'pm' && hour < 12) hour += 12;
+  if (m[5] === 'am' && hour === 12) hour = 0;
+  // Year inference: if month is more than ~30 days in the past for the
+  // current year, assume next year (e.g. "Mar 14" seen in May means Mar 2027).
+  const now = new Date();
+  let year = now.getFullYear();
+  const candidate = new Date(year, month, day, hour, min);
+  if (candidate.getTime() < now.getTime() - 30 * 86400_000) year += 1;
+  return new Date(year, month, day, hour, min).getTime();
+}
+
 // ───────────── DISCOVER ─────────────
 function DiscoverScreen({ events, prefs, onOpenEvent, onSave, savedIds, onOpenNotifs, onOpenRider, onOpenRidersTab, hasUnreadNotifs }) {
   const [filterSport, setFilterSport] = React.useState(null);
@@ -46,8 +78,31 @@ function DiscoverScreen({ events, prefs, onOpenEvent, onSave, savedIds, onOpenNo
     return true;
   };
 
+  // Hide events whose date has clearly passed. Auto-archive runs daily but
+  // (a) it has a 7-day grace period, and (b) the LLM sometimes returns events
+  // with no parseable date — those should NOT show on Discover at all.
+  // Also hide events more than 12 months in the future to filter out
+  // hallucinated long-future dates.
+  const now = Date.now();
+  const passedGrace = now - 1 * 24 * 60 * 60 * 1000;     // hide stuff > 1 day in the past
+  const farFuture   = now + 365 * 24 * 60 * 60 * 1000;   // hide stuff > 12 months in the future
+  const isUpcoming = (e) => {
+    // Try the canonical timestamp first.
+    const iso = e.startsAt || e.starts_at;
+    if (iso) {
+      const t = new Date(iso).getTime();
+      if (Number.isNaN(t)) return false;       // bad ISO → hide
+      return t > passedGrace && t < farFuture;
+    }
+    // Fall back to parsing the display string ("Sat · Mar 14 · 7:00 PM").
+    const parsed = whenStringToTime(e.when);
+    if (parsed == null) return false;          // can't tell → hide rather than show stale
+    return parsed > passedGrace && parsed < farFuture;
+  };
+
   const filtered = userSportPool
     .filter(visibleToRiders)
+    .filter(isUpcoming)                                  // hide past + far-future + un-dated rows
     .filter(e => filterSport ? e.sport === filterSport : true)
     .filter(matchesQuery)
     .filter(matchesExtra);
@@ -241,7 +296,6 @@ function DiscoverScreen({ events, prefs, onOpenEvent, onSave, savedIds, onOpenNo
 // A short teaser strip that links to the full Riders tab. We show ~6 cards;
 // for the full list, the user taps "See all" → Riders tab.
 function RidersNearbySection({ prefs, onOpenRider, onOpenRidersTab }) {
-  const seedRiders = window.JR_DATA.RIDERS || [];
   const [realRiders, setRealRiders] = React.useState([]);
 
   React.useEffect(() => {
@@ -256,10 +310,12 @@ function RidersNearbySection({ prefs, onOpenRider, onOpenRidersTab }) {
     return () => { cancelled = true; clearInterval(t); };
   }, []);
 
-  const all = [
-    ...realRiders,
-    ...seedRiders.map(r => ({ ...r, _seed: true })),
-  ];
+  // Real riders only — seeds were removed from data.jsx-backed lists.
+  // Also strip surnames here for first-name-only display.
+  const all = realRiders.map(r => ({
+    ...r,
+    name: (r.name || '').split(/\s+/)[0] || '',
+  }));
 
   const sportSet = new Set(prefs?.sports || []);
   const radius = prefs?.radius || 100;
@@ -645,6 +701,7 @@ function MapScreen({ events, prefs, onOpenEvent, savedIds, onSave }) {
         events={visible}
         selectedId={selected}
         onSelect={setSelected}
+        onOpenEvent={onOpenEvent}
         prefs={prefs}
         radiusKm={extra.maxKm}
       />
@@ -740,7 +797,7 @@ function parseCoords(str) {
 }
 
 // Real Leaflet map with dark tiles, radius circle, and event markers.
-function LeafletMap({ events, selectedId, onSelect, prefs, radiusKm }) {
+function LeafletMap({ events, selectedId, onSelect, onOpenEvent, prefs, radiusKm }) {
   const containerRef = React.useRef(null);
   const mapRef = React.useRef(null);
   const layersRef = React.useRef({ markers: {}, circle: null, you: null });
@@ -807,8 +864,14 @@ function LeafletMap({ events, selectedId, onSelect, prefs, radiusKm }) {
         <div style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:10px;opacity:0.75;">${e.when || ''}${e.distanceKm != null ? ' · ' + e.distanceKm + ' km' : ''}</div>`;
       if (!marker) {
         marker = window.L.marker(c, { icon }).addTo(map);
-        marker.on('click', () => onSelect(e.id));
-        // Hover (desktop) and long-press (mobile) reveal title + when.
+        // Tap = open the event detail. The bottom preview card was confusing —
+        // riders expect a marker tap to take them to the event, not silently
+        // populate a card they may not even see on a small screen.
+        marker.on('click', () => {
+          onSelect?.(e.id);
+          if (typeof onOpenEvent === 'function') onOpenEvent(e.id);
+        });
+        // Hover (desktop) and long-press (mobile) still reveal title + when.
         marker.bindTooltip(tooltipHtml, {
           direction: 'top', offset: [0, -10], className: 'jr-pin-tooltip', sticky: false,
         });
