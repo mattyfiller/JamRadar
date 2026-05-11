@@ -38,7 +38,7 @@ function whenStringToTime(when) {
 }
 
 // ───────────── DISCOVER ─────────────
-function DiscoverScreen({ events, prefs, onOpenEvent, onSave, savedIds, onOpenNotifs, onOpenRider, onOpenRidersTab, hasUnreadNotifs }) {
+function DiscoverScreen({ events, prefs, isGuest, onOpenEvent, onSave, savedIds, onOpenNotifs, onOpenRider, onOpenRidersTab, hasUnreadNotifs }) {
   const [filterSport, setFilterSport] = React.useState(null);
   const [showFilters, setShowFilters] = React.useState(false);
   const [query, setQuery] = React.useState('');
@@ -262,7 +262,7 @@ function DiscoverScreen({ events, prefs, onOpenEvent, onSave, savedIds, onOpenNo
             )}
 
             {/* Riders near you — preview strip with link to the full Riders tab */}
-            <RidersNearbySection prefs={prefs} onOpenRider={onOpenRider} onOpenRidersTab={onOpenRidersTab}/>
+            <RidersNearbySection prefs={prefs} isGuest={isGuest} onOpenRider={onOpenRider} onOpenRidersTab={onOpenRidersTab}/>
 
             {/* More */}
             {featuredFirst.length > 3 && (
@@ -295,7 +295,7 @@ function DiscoverScreen({ events, prefs, onOpenEvent, onSave, savedIds, onOpenNo
 // "Riders near you" preview on Discover.
 // A short teaser strip that links to the full Riders tab. We show ~6 cards;
 // for the full list, the user taps "See all" → Riders tab.
-function RidersNearbySection({ prefs, onOpenRider, onOpenRidersTab }) {
+function RidersNearbySection({ prefs, isGuest, onOpenRider, onOpenRidersTab }) {
   const [realRiders, setRealRiders] = React.useState([]);
 
   React.useEffect(() => {
@@ -310,11 +310,11 @@ function RidersNearbySection({ prefs, onOpenRider, onOpenRidersTab }) {
     return () => { cancelled = true; clearInterval(t); };
   }, []);
 
-  // Real riders only — seeds were removed from data.jsx-backed lists.
-  // Also strip surnames here for first-name-only display.
+  // Real riders only. Guests see first name only; signed-in riders see the
+  // full display name (peer-level visibility is OK once you're inside).
   const all = realRiders.map(r => ({
     ...r,
-    name: (r.name || '').split(/\s+/)[0] || '',
+    name: isGuest ? ((r.name || '').split(/\s+/)[0] || '') : (r.name || ''),
   }));
 
   const sportSet = new Set(prefs?.sports || []);

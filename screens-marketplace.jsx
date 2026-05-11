@@ -190,18 +190,14 @@ function ListingCard({ listing, onClick }) {
 // ─────────────────────────────────────────────────────────────
 // ListingDetail — full-screen view of one listing, with contact CTA.
 // ─────────────────────────────────────────────────────────────
-function ListingDetail({ listingId, onBack, onMarkSold, onWithdraw }) {
+function ListingDetail({ listingId, onBack, onMarkSold, onWithdraw, onBuyNow }) {
   const [listing, setListing] = React.useState(null);
   const [loading, setLoading] = React.useState(true);
   const [photoIndex, setPhotoIndex] = React.useState(0);
+  const [buying, setBuying] = React.useState(false);
 
   React.useEffect(() => {
-    // Resolve loading=false synchronously when there's nothing to fetch —
-    // otherwise the screen sits at "Loading…" forever in degraded states.
-    if (!listingId || !window.JR_SUPABASE) {
-      setLoading(false);
-      return;
-    }
+    if (!listingId || !window.JR_SUPABASE) { setLoading(false); return; }
     let cancelled = false;
     (async () => {
       try {
@@ -321,6 +317,35 @@ function ListingDetail({ listingId, onBack, onMarkSold, onWithdraw }) {
     onBack?.();
   };
 
+  // Try in-app Stripe checkout first. If the seller hasn't completed Stripe
+  // onboarding (returns 409), fall back to revealing their contact info so
+  // the buyer can reach out directly. Same single primary CTA either way.
+  const buyNow = async () => {
+    if (!onBuyNow || buying) return;
+    if (!isAuthed) {
+      window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: 'Sign in to buy' } }));
+      return;
+    }
+    setBuying(true);
+    try {
+      const { url } = await onBuyNow(listing.id);
+      if (url) window.location.href = url;   // redirect to Stripe Checkout
+    } catch (e) {
+      const msg = String(e?.message || '');
+      // Seller-not-setup or Stripe-not-configured → quietly fall back.
+      if (/payment setup|not configured|not ready/i.test(msg)) {
+        window.dispatchEvent(new CustomEvent('jr:toast', {
+          detail: { msg: 'In-app payment not available — using contact instead' },
+        }));
+        await contactSeller();
+      } else {
+        window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg } }));
+      }
+    } finally {
+      setBuying(false);
+    }
+  };
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)' }}>
       {/* Header */}
@@ -430,13 +455,33 @@ function ListingDetail({ listingId, onBack, onMarkSold, onWithdraw }) {
             </div>
           </div>
         ) : (
-          <button
-            onClick={contactSeller}
-            className="btn-accent"
-            style={{ width: '100%' }}
-          >
-            {isAuthed ? 'Reveal seller contact' : 'Sign in to see contact'}
-          </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Primary: Buy now (tries Stripe Checkout). Falls back to
+                contact-reveal silently if seller hasn't completed Stripe
+                onboarding or the platform isn't configured yet. */}
+            <button
+              onClick={buyNow}
+              disabled={buying}
+              className="btn-accent"
+              style={{ width: '100%', opacity: buying ? 0.5 : 1 }}
+            >
+              {buying
+                ? 'Opening checkout…'
+                : isAuthed
+                  ? `Buy now · $${Number(listing.price).toFixed(0)}`
+                  : 'Sign in to buy'}
+            </button>
+            {/* Always-available secondary action — useful when the seller
+                prefers off-platform coordination (local pickup negotiation,
+                shipping arrangements, questions before payment). */}
+            <button
+              onClick={contactSeller}
+              className="btn-ghost"
+              style={{ width: '100%', fontSize: 12 }}
+            >
+              {isAuthed ? 'Message seller' : 'Sign in to message'}
+            </button>
+          </div>
         )}
       </div>
     </div>

@@ -13,7 +13,7 @@ function firstNameOnly(s) {
   return String(s).split(/\s+/)[0] || '';
 }
 
-function RidersScreen({ prefs, onOpenRider }) {
+function RidersScreen({ prefs, isGuest, onOpenRider }) {
   const [realRiders, setRealRiders] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [filterSport, setFilterSport] = React.useState(null);
@@ -34,9 +34,12 @@ function RidersScreen({ prefs, onOpenRider }) {
     return () => { cancelled = true; clearInterval(t); };
   }, []);
 
-  // No more seeds. Riders tab is empty until real users opt in via the
-  // "Open to ride" toggle on their profile. Empty-state copy guides them.
-  const all = realRiders.map(r => ({ ...r, name: firstNameOnly(r.name) }));
+  // Guests see first name only (privacy on a public-readable view); signed-in
+  // riders see the full display_name the user chose during onboarding.
+  const all = realRiders.map(r => ({
+    ...r,
+    name: isGuest ? firstNameOnly(r.name) : r.name,
+  }));
 
   const filtered = all
     .filter(r => !filterSport || (r.sports || []).includes(filterSport))

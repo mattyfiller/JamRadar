@@ -90,9 +90,37 @@ function App() {
     const params = new URLSearchParams(window.location.search);
     const eventId = params.get('event');
     const listingId = params.get('listing');
-    if (!eventId && !listingId) return null;
-    return { event: eventId, listing: listingId };
+    const sale = params.get('sale');
+    const stripeOnboarding = params.get('stripe_onboarding');
+    if (!eventId && !listingId && !sale && !stripeOnboarding) return null;
+    return { event: eventId, listing: listingId, sale, stripeOnboarding };
   });
+
+  // Sale-success + Stripe-onboarding return paths fire one-shot toasts and
+  // clear the URL. These don't need to wait for onboarding — they're return
+  // trips from external flows the user already initiated.
+  React.useEffect(() => {
+    if (!pendingDeepLink) return;
+    const { sale, stripeOnboarding } = pendingDeepLink;
+    if (sale === 'success') {
+      window.dispatchEvent(new CustomEvent('jr:toast', {
+        detail: { msg: 'Payment received — seller will be notified' },
+      }));
+      window.history.replaceState({}, '', window.location.pathname);
+      setPendingDeepLink(p => p?.listing ? { listing: p.listing } : null);  // keep the listing target if any
+    } else if (stripeOnboarding === 'complete') {
+      window.dispatchEvent(new CustomEvent('jr:toast', {
+        detail: { msg: 'Payouts set up. You can now sell with in-app payments.' },
+      }));
+      window.history.replaceState({}, '', window.location.pathname);
+      setPendingDeepLink(null);
+    } else if (stripeOnboarding === 'refresh') {
+      // User abandoned mid-flow; we don't auto-redirect. They tap Set up
+      // payouts again to resume.
+      window.history.replaceState({}, '', window.location.pathname);
+      setPendingDeepLink(null);
+    }
+  }, [pendingDeepLink?.sale, pendingDeepLink?.stripeOnboarding]);
 
   // Browser-back support: when we open a deep-linked screen, push a real
   // history entry so iOS/Android system-back returns the user to a clean
@@ -201,6 +229,7 @@ function App() {
         riderId={openRiderId}
         events={events}
         savedIds={savedIds}
+        isGuest={!user}
         onOpenEvent={openEvent}
         onSave={actions.toggleSaved}
         onBack={() => setRoute('main')}
@@ -275,6 +304,7 @@ function App() {
         onBack={() => { setOpenListingId(null); setRoute('main'); setTab('gear'); }}
         onMarkSold={actions.markListingSold}
         onWithdraw={actions.withdrawListing}
+        onBuyNow={actions.createCheckoutSession}
       />
     );
   } else if (route === 'sell') {
@@ -335,6 +365,7 @@ function App() {
           events={events}
           prefs={prefs}
           savedIds={savedIds}
+          isGuest={!user}
           onOpenEvent={openEvent}
           onSave={actions.toggleSaved}
           onOpenRider={openRider}
@@ -373,7 +404,7 @@ function App() {
         />
       );
     } else if (tab === 'riders') {
-      content = <RidersScreen prefs={prefs} onOpenRider={openRider}/>;
+      content = <RidersScreen prefs={prefs} isGuest={!user} onOpenRider={openRider}/>;
     } else {
       content = (
         <ProfileScreen
@@ -388,6 +419,7 @@ function App() {
           onSwitchToOrgMode={() => { setTweak('deviceMode', 'organizer'); setRoute('org'); }}
           onSwitchToShopMode={() => { setRoute('shop'); }}
           onSwitchToAdminMode={() => { setTweak('deviceMode', 'admin'); setRoute('admin'); }}
+          onSetupStripe={() => actions.startStripeOnboarding()}
           onResetAll={actions.resetAll}
         />
       );

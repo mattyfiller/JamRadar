@@ -483,7 +483,7 @@ function StatCell({ label, value, highlight, hot }) {
 }
 
 // ───────────── PROFILE ─────────────
-function ProfileScreen({ prefs, savedIds, goingIds, events, user, onOpenAuth, onSignOut, onSetPrefs, onSwitchToOrgMode, onSwitchToShopMode, onSwitchToAdminMode, onResetAll }) {
+function ProfileScreen({ prefs, savedIds, goingIds, events, user, onOpenAuth, onSignOut, onSetPrefs, onSwitchToOrgMode, onSwitchToShopMode, onSwitchToAdminMode, onSetupStripe, onResetAll }) {
   const [editing, setEditing] = React.useState(null); // 'sports' | 'radius' | 'types' | 'notif' | 'skill'
 
   const sportLabels = (prefs?.sports || [])
@@ -632,6 +632,20 @@ function ProfileScreen({ prefs, savedIds, goingIds, events, user, onOpenAuth, on
             onClick={onSwitchToAdminMode}
           />
         </div>
+
+        {/* Stripe Connect payouts — visible to anyone authenticated. Clicking
+            opens the Stripe-hosted onboarding flow. After setup, the user
+            can sell gear with in-app "Buy now" instead of share-sheet contact.
+            Hidden when the user isn't signed in (no point). */}
+        {user && (
+          <>
+            <SectionLabel kicker="Pay" label="In-app payments" style={{ marginTop: 22 }}/>
+            <StripePayoutsCard
+              status={prefs?.stripeAccountStatus}
+              onSetUp={onSetupStripe}
+            />
+          </>
+        )}
 
         <button onClick={() => { if (confirm('Reset all local data and re-run onboarding?')) onResetAll?.(); }} style={{
           appearance: 'none', cursor: 'pointer',
@@ -968,6 +982,60 @@ function AccoladesList({ items, onEdit }) {
           }}>+ {items.length - 5} more</div>
         )}
       </div>
+    </button>
+  );
+}
+
+// Phase 2 marketplace card. Opens Stripe Connect onboarding when tapped.
+// status flows from prefs.stripeAccountStatus, which the stripe-webhook
+// edge function flips to 'verified' once the seller passes KYC.
+function StripePayoutsCard({ status, onSetUp }) {
+  const [working, setWorking] = React.useState(false);
+  const meta = ({
+    verified:   { title: 'Payouts enabled', sub: 'You can sell gear with in-app payments', cta: 'Manage' },
+    pending:    { title: 'Finish setting up payouts', sub: 'Stripe still needs a few details', cta: 'Continue' },
+    restricted: { title: 'Payouts paused', sub: 'Stripe flagged your account — open to resolve', cta: 'Open' },
+    disabled:   { title: 'Payouts disabled', sub: 'Reach out to support to reactivate', cta: 'Help' },
+  })[status] || { title: 'Set up payouts', sub: 'Sell gear with in-app payments + faster checkout', cta: 'Start' };
+
+  const onTap = async () => {
+    if (working) return;
+    setWorking(true);
+    try {
+      const { url } = await onSetUp();
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent('jr:toast', {
+        detail: { msg: e?.message || 'Stripe not ready yet — try again in a sec' },
+      }));
+    } finally {
+      setWorking(false);
+    }
+  };
+
+  return (
+    <button onClick={onTap} disabled={working} style={{
+      appearance: 'none', cursor: working ? 'wait' : 'pointer', width: '100%',
+      padding: 14, borderRadius: 'var(--r-md)',
+      background: 'var(--bg-surface)', border: '1px solid var(--line-soft)',
+      display: 'flex', alignItems: 'center', gap: 12,
+      color: 'var(--fg)', textAlign: 'left',
+    }}>
+      <div style={{
+        width: 36, height: 36, borderRadius: 8,
+        background: status === 'verified' ? 'var(--accent-soft)' : 'var(--bg-surface-2)',
+        color: status === 'verified' ? 'var(--accent)' : 'var(--fg-muted)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--font-mono)', fontWeight: 700, fontSize: 13,
+      }}>{status === 'verified' ? '✓' : '$'}</div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontWeight: 600, fontSize: 14 }}>{meta.title}</div>
+        <div className="mono" style={{ fontSize: 10, color: 'var(--fg-dim)', marginTop: 2 }}>{meta.sub}</div>
+      </div>
+      <span className="mono" style={{
+        fontSize: 11, color: 'var(--accent)',
+        letterSpacing: 0.06, textTransform: 'uppercase', fontWeight: 700,
+      }}>{working ? '…' : meta.cta}</span>
     </button>
   );
 }

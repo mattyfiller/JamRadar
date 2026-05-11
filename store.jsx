@@ -221,6 +221,56 @@ function useJamStore() {
           console.warn('[JamRadar] featureEvent server write failed:', e.message));
       }
     },
+    // ─── Stripe Connect (Phase 2 marketplace monetization) ───────────
+    // Calls the stripe-onboard-seller Edge Function, which creates a Stripe
+    // Express account if needed and returns a hosted onboarding URL. The
+    // caller redirects the user there to complete KYC + bank linking.
+    // Returns null if Stripe isn't configured server-side — caller shows a
+    // friendly "Coming soon" toast.
+    startStripeOnboarding: async () => {
+      const user = userRef.current;
+      if (!window.JR_SUPABASE_READY || !user) {
+        throw new Error('Sign in to set up payouts');
+      }
+      const sb = window.JR_SUPABASE;
+      const session = await sb.auth.getSession();
+      const token = session.data.session?.access_token;
+      if (!token) throw new Error('No active session');
+      const url = `${window.JR_SUPABASE_URL}/functions/v1/stripe-onboard-seller`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      return await res.json();   // { url, account_id }
+    },
+    // Creates a Stripe Checkout Session for a listing. Returns the hosted
+    // URL; ListingDetail redirects the buyer there.
+    createCheckoutSession: async (listingId) => {
+      const user = userRef.current;
+      if (!window.JR_SUPABASE_READY || !user) {
+        throw new Error('Sign in to buy');
+      }
+      const sb = window.JR_SUPABASE;
+      const session = await sb.auth.getSession();
+      const token = session.data.session?.access_token;
+      if (!token) throw new Error('No active session');
+      const url = `${window.JR_SUPABASE_URL}/functions/v1/stripe-create-checkout`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ listing_id: listingId }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      return await res.json();   // { url, session_id }
+    },
+
     // ─── Marketplace (peer-to-peer gear listings) ─────────────────────
     // List: rider posts a used board / jacket / etc. for sale. Active immediately
     // (riders trust riders); admin can flag spam. Phase 2 will add Stripe Checkout
