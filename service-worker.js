@@ -3,7 +3,7 @@
 // stale-while-revalidate for CDN scripts (React, Babel, Leaflet, fonts, tiles);
 // network-first navigation fallback so HTML updates aren't pinned forever.
 
-const VERSION   = 'jamradar-v23';
+const VERSION   = 'jamradar-v24';
 const CACHE     = `${VERSION}-shell`;
 const RUNTIME   = `${VERSION}-runtime`;
 
@@ -46,9 +46,15 @@ self.addEventListener('install', (event) => {
   // page from getting torn down mid-action.
 });
 
-// Allow the page to trigger a takeover when it's ready (see HTML registration).
+// Allow the page to trigger a takeover when the user explicitly opts in
+// (taps the "Update available" toast). The auto-reload-on-controllerchange
+// flow was disruptive — taps mid-interaction landed on a freshly-loaded
+// home screen, indistinguishable from "back button didn't work."
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (!event.data) return;
+  if (event.data.type === 'SKIP_WAITING' || event.data.type === 'SKIP_WAITING_AND_RELOAD') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('activate', (event) => {

@@ -105,40 +105,73 @@ const Icon = {
   ),
 };
 
-// Unified back button. Standardizes touch target (44×44, Apple HIG min),
-// disables iOS tap-highlight + 300ms tap delay, defaults to type="button" to
-// avoid accidental form submission, and centralizes the aria-label. Use this
-// everywhere instead of an inline <button onClick={onBack}>. Variants:
-//   default — transparent, for screens with their own background
-//   pill    — semi-transparent dark circle, for hero-image overlays
+// Unified back button. Hardened for iOS Safari PWA quirks across multiple
+// rounds of "back doesn't work" reports:
+//
+//   - 44×44 hit target (Apple HIG minimum). Children pointer-events:none so
+//     the SVG chevron NEVER absorbs the tap intended for the button.
+//   - Both onClick AND onTouchEnd handlers — some iOS builds drop click
+//     events on absolute-positioned buttons inside transformed parents.
+//     Touchend fires reliably; we deduplicate via a ref so the same tap
+//     doesn't navigate twice.
+//   - touchAction:'manipulation' eliminates the 300ms double-tap delay.
+//   - WebkitTapHighlightColor:'transparent' replaced with our own
+//     scale-down press state so the user sees the tap registered.
+//   - Pill variant uses a solid dark fill (no backdrop-filter) — iOS
+//     PWA backdrop-filter has historic bugs around pointer events.
 function BackButton({ onClick, variant = 'default', size = 22, label = 'Back' }) {
+  const lastFireRef = React.useRef(0);
+  const [pressed, setPressed] = React.useState(false);
+
+  const fire = (e) => {
+    // Dedup touchend + click double-fire within 300ms of each other.
+    const now = Date.now();
+    if (now - lastFireRef.current < 300) return;
+    lastFireRef.current = now;
+    onClick?.(e);
+  };
+
   const base = {
     appearance: 'none', border: 'none', cursor: 'pointer',
-    width: 44, height: 44, borderRadius: 999,
+    width: 44, height: 44, minWidth: 44, minHeight: 44,
+    borderRadius: 999,
     display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
     padding: 0, lineHeight: 0,
-    // iOS-specific defenses — without these, taps can register intermittently
-    // or with a 300ms delay, and the default tap highlight flashes blue.
     WebkitTapHighlightColor: 'transparent',
     touchAction: 'manipulation',
     flexShrink: 0,
+    position: 'relative',
+    zIndex: 2,
+    transition: 'transform .1s ease, background .1s ease',
+    transform: pressed ? 'scale(0.92)' : 'scale(1)',
   };
   const variants = {
-    default: { background: 'transparent', color: 'var(--fg)' },
-    pill:    {
-      background: 'oklch(0 0 0 / 0.4)',
-      backdropFilter: 'blur(10px)',
+    default: {
+      background: pressed ? 'var(--bg-surface)' : 'transparent',
+      color: 'var(--fg)',
+    },
+    pill: {
+      // Solid dark, no backdrop-filter (iOS Safari quirk avoided).
+      background: pressed ? 'oklch(0 0 0 / 0.75)' : 'oklch(0 0 0 / 0.55)',
       color: 'white',
     },
   };
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={fire}
+      onTouchEnd={(e) => { e.preventDefault(); fire(e); }}
+      onTouchStart={() => setPressed(true)}
+      onTouchCancel={() => setPressed(false)}
+      onMouseDown={() => setPressed(true)}
+      onMouseUp={() => setPressed(false)}
+      onMouseLeave={() => setPressed(false)}
       aria-label={label}
       style={{ ...base, ...(variants[variant] || variants.default) }}
     >
-      {Icon.back(size)}
+      <span style={{ pointerEvents: 'none', display: 'flex' }}>
+        {Icon.back(size)}
+      </span>
     </button>
   );
 }
@@ -428,31 +461,50 @@ function FeaturedBadge({ size = 'sm' }) {
 // Lightweight global toast — listens for `window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg } }))`
 // and shows a slim pill at the top of the screen for 1.6s. Non-blocking, no library.
 function ToastHost() {
-  const [msg, setMsg] = React.useState(null);
+  const [toast, setToast] = React.useState(null);  // { msg, action }
+  const timerRef = React.useRef(null);
   React.useEffect(() => {
     const onToast = (e) => {
-      setMsg(e.detail?.msg || '');
-      const t = setTimeout(() => setMsg(null), 1600);
-      return () => clearTimeout(t);
+      const next = { msg: e.detail?.msg || '', action: e.detail?.action };
+      setToast(next);
+      clearTimeout(timerRef.current);
+      // Action toasts (like "tap to refresh") get a longer dwell.
+      const ttl = next.action ? 7000 : 1600;
+      timerRef.current = setTimeout(() => setToast(null), ttl);
     };
     window.addEventListener('jr:toast', onToast);
-    return () => window.removeEventListener('jr:toast', onToast);
+    return () => {
+      window.removeEventListener('jr:toast', onToast);
+      clearTimeout(timerRef.current);
+    };
   }, []);
-  if (!msg) return null;
+  if (!toast?.msg) return null;
+  const onTap = () => {
+    if (toast.action === 'reload' && typeof window.__jrReloadForUpdate === 'function') {
+      window.__jrReloadForUpdate();
+    }
+    setToast(null);
+  };
   return (
-    <div style={{
-      position: 'fixed', top: 'calc(env(safe-area-inset-top, 16px) + 16px)',
-      left: '50%', transform: 'translateX(-50%)',
-      padding: '10px 16px', borderRadius: 999,
-      background: 'oklch(0.20 0.018 240 / 0.95)',
-      color: 'var(--fg)',
-      border: '1px solid var(--accent)',
-      backdropFilter: 'blur(14px)',
-      WebkitBackdropFilter: 'blur(14px)',
-      fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
-      zIndex: 9999,
-      boxShadow: '0 8px 24px oklch(0 0 0 / 0.4)',
-    }}>{msg}</div>
+    <button
+      type="button"
+      onClick={onTap}
+      style={{
+        position: 'fixed', top: 'calc(env(safe-area-inset-top, 16px) + 16px)',
+        left: '50%', transform: 'translateX(-50%)',
+        padding: '10px 16px', borderRadius: 999,
+        background: 'oklch(0.20 0.018 240 / 0.95)',
+        color: 'var(--fg)',
+        border: '1px solid var(--accent)',
+        WebkitBackdropFilter: 'blur(14px)',
+        fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 13,
+        zIndex: 9999,
+        boxShadow: '0 8px 24px oklch(0 0 0 / 0.4)',
+        appearance: 'none',
+        cursor: toast.action ? 'pointer' : 'default',
+        WebkitTapHighlightColor: 'transparent',
+      }}
+    >{toast.msg}</button>
   );
 }
 
