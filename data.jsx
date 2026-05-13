@@ -6,7 +6,7 @@ const SPORTS = [
   { id: 'skate',     label: 'Skate',     icon: '◇' },
   { id: 'mtb',       label: 'MTB',       icon: '◯' },
   { id: 'bmx',       label: 'BMX',       icon: '⬡' },
-  { id: 'indoor',    label: 'Indoor training', icon: '⬚' },
+  { id: 'indoor',    label: 'Indoor', icon: '⬚' },
 ];
 
 const EVENT_TYPES = [
@@ -996,4 +996,8 @@ const NA_CITIES = [
   { name: 'Richmond',        region: 'VA', country: 'US', lat: 37.5407, lon: -77.4360 },
 ];
 
-window.JR_DATA = { SPORTS, EVENT_TYPES, EVENTS, GEAR_DEALS, NOTIFICATIONS, RIDERS, NA_CITIES };
+// RIDERS seed array dropped from the export — every rider surface
+// (RidersScreen, RidersNearbySection, RiderProfile) reads from the live
+// public_riders Supabase view now. The seed array itself is left in this
+// file as dead code for design reference but is no longer reachable.
+window.JR_DATA = { SPORTS, EVENT_TYPES, EVENTS, GEAR_DEALS, NOTIFICATIONS, NA_CITIES };

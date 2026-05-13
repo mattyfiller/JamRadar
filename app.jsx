@@ -242,6 +242,7 @@ function App() {
         readIds={readNotifIds}
         dynamicNotifs={notifications}
         onMarkAllRead={actions.markAllNotifsRead}
+        onOpenEvent={openEvent}
       />
     );
   } else if (route === 'org') {
@@ -340,8 +341,14 @@ function App() {
         <PostDealScreen
           prefs={prefs}
           onPublish={async (deal) => {
-            await actions.publishDeal(deal);
-            setShopRoute('dashboard');
+            try {
+              await actions.publishDeal(deal);
+              setShopRoute('dashboard');
+            } catch (e) {
+              window.dispatchEvent(new CustomEvent('jr:toast', {
+                detail: { msg: e?.message || "Couldn't publish deal" },
+              }));
+            }
           }}
           onBack={() => setShopRoute('dashboard')}
         />

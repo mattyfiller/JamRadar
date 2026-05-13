@@ -22,7 +22,7 @@ const CATEGORIES = [
   { id: 'pants',     label: 'Pants' },
   { id: 'helmet',    label: 'Helmet' },
   { id: 'goggles',   label: 'Goggles' },
-  { id: 'skate',     label: 'Skateboard' },
+  { id: 'skate',     label: 'Skate' },
   { id: 'mtb',       label: 'MTB' },
   { id: 'bmx',       label: 'BMX' },
   { id: 'other',     label: 'Other' },
@@ -306,15 +306,27 @@ function ListingDetail({ listingId, onBack, onMarkSold, onWithdraw, onBuyNow }) 
 
   const markSold = async () => {
     if (!onMarkSold) return;
-    await onMarkSold(listing.id);
-    window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: 'Marked sold' } }));
-    onBack?.();
+    try {
+      await onMarkSold(listing.id);
+      window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: 'Marked sold' } }));
+      onBack?.();
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent('jr:toast', {
+        detail: { msg: e?.message || "Couldn't mark sold" },
+      }));
+    }
   };
   const withdraw = async () => {
     if (!onWithdraw) return;
-    await onWithdraw(listing.id);
-    window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: 'Listing withdrawn' } }));
-    onBack?.();
+    try {
+      await onWithdraw(listing.id);
+      window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: 'Listing withdrawn' } }));
+      onBack?.();
+    } catch (e) {
+      window.dispatchEvent(new CustomEvent('jr:toast', {
+        detail: { msg: e?.message || "Couldn't withdraw" },
+      }));
+    }
   };
 
   // Try in-app Stripe checkout first. If the seller hasn't completed Stripe

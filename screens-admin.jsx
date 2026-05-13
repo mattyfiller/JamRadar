@@ -188,11 +188,17 @@ function AdminDashboard({ events, onApprove, onReject, onFeature, onVerifyOrg, o
                   <button
                     className="btn-accent"
                     style={{ padding: '6px 12px', fontSize: 11 }}
-                    onClick={() => {
-                      onVerifyOrg?.(o.name);
-                      window.dispatchEvent(new CustomEvent('jr:toast', {
-                        detail: { msg: `Verified ${o.name}` },
-                      }));
+                    onClick={async () => {
+                      try {
+                        const result = await onVerifyOrg?.(o.name);
+                        window.dispatchEvent(new CustomEvent('jr:toast', {
+                          detail: { msg: `Verified ${o.name} (${result?.count || 0} event${result?.count === 1 ? '' : 's'})` },
+                        }));
+                      } catch (err) {
+                        window.dispatchEvent(new CustomEvent('jr:toast', {
+                          detail: { msg: err?.message || `Couldn't verify ${o.name}` },
+                        }));
+                      }
                     }}>
                     Verify
                   </button>

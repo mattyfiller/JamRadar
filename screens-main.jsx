@@ -222,10 +222,24 @@ function DiscoverScreen({ events, prefs, isGuest, onOpenEvent, onSave, savedIds,
             border: '1px dashed var(--line)', borderRadius: 'var(--r-md)',
           }}>
             <div style={{ fontSize: 32, marginBottom: 8 }}>◌</div>
-            No events match.<br/>
+            <div style={{ marginBottom: 6 }}>No events match.</div>
             <span style={{ fontSize: 12, color: 'var(--fg-dim)' }}>
               Try a broader radius or clear some filters.
             </span>
+            {(filterSport || query || extra.types.length || extra.maxKm !== baselineMaxKm || extra.indoorMode !== 'all' || extra.cost !== 'all') && (
+              <div style={{ marginTop: 16 }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFilterSport(null);
+                    setQuery('');
+                    setExtra({ types: [], maxKm: baselineMaxKm, indoorMode: 'all', cost: 'all' });
+                  }}
+                  className="btn-accent"
+                  style={{ padding: '8px 16px', fontSize: 12 }}
+                >Reset filters</button>
+              </div>
+            )}
           </div>
         ) : (
           <>
@@ -676,10 +690,18 @@ function ListEventRow({ event, onOpen, onSave }) {
           {event.distanceKm != null ? ` · ${event.distanceKm} km` : ''}
         </div>
       </div>
-      <button onClick={(e) => { e.stopPropagation(); onSave(event.id); }} style={{
-        appearance: 'none', border: 'none', background: 'transparent',
-        color: event.saved ? 'var(--accent)' : 'var(--fg-dim)', cursor: 'pointer', padding: 4,
-      }}>{Icon.bookmark(18, event.saved)}</button>
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onSave(event.id); }}
+        aria-label={event.saved ? 'Remove from saved' : 'Save event'}
+        style={{
+          appearance: 'none', border: 'none', background: 'transparent',
+          color: event.saved ? 'var(--accent)' : 'var(--fg-dim)',
+          cursor: 'pointer',
+          width: 44, height: 44, minWidth: 44, minHeight: 44,
+          display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          WebkitTapHighlightColor: 'transparent', touchAction: 'manipulation',
+        }}>{Icon.bookmark(18, event.saved)}</button>
     </div>
   );
 }
@@ -883,7 +905,7 @@ function LeafletMap({ events, selectedId, onSelect, onOpenEvent, prefs, radiusKm
           font-family: 'JetBrains Mono', ui-monospace, monospace;
           font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase;
           font-weight: 700; box-shadow: 0 4px 10px oklch(0 0 0 / 0.4);
-        ">${e.distanceKm != null ? e.distanceKm + 'km' : e.type}</div>`;
+        ">${e.distanceKm != null ? e.distanceKm + ' km' : e.type}</div>`;
       const icon = window.L.divIcon({ html, iconSize: null, className: 'jr-pin-icon' });
       const tooltipHtml = `
         <div style="font-weight:600;font-size:12px;line-height:1.25;margin-bottom:2px;">${e.title}</div>
@@ -1344,17 +1366,11 @@ function GearHero({ deal }) {
     }}>
       <div className="poster-ph" style={{
         height: 160, position: 'relative',
-        background: 'linear-gradient(135deg, oklch(0.32 0.04 95) 0%, oklch(0.20 0.02 240) 100%)',
+        // Use the deal poster when present; gradient fallback otherwise.
+        background: deal.poster
+          ? `center/cover no-repeat url(${deal.poster})`
+          : `linear-gradient(135deg, oklch(0.32 0.04 ${(deal.sport === 'snowboard' ? 230 : deal.sport === 'ski' ? 240 : deal.sport === 'skate' ? 60 : 95)}) 0%, oklch(0.20 0.02 240) 100%)`,
       }}>
-        <div style={{
-          position: 'absolute', inset: 0,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <span className="mono" style={{
-            fontSize: 11, color: 'oklch(1 0 0 / 0.3)',
-            letterSpacing: 0.12, textTransform: 'uppercase',
-          }}>[ product shot ]</span>
-        </div>
         <div style={{
           position: 'absolute', top: 12, left: 12,
           display: 'flex', gap: 6,

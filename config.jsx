@@ -6,11 +6,11 @@
 window.JR_CONFIG = {
   // Where beta testers send feedback. Mailto, Tally form, Discord invite, anything.
   // Leave '' to hide the "Send feedback" link in the beta banner + landing FAQ.
-  FEEDBACK_URL: '',
+  FEEDBACK_URL: 'mailto:mattkidd2012@gmail.com?subject=JamRadar%20feedback',
 
   // Public-facing contact email (shown in landing.html FAQ).
   // Leave '' to hide the "Email me" link.
-  CONTACT_EMAIL: '',
+  CONTACT_EMAIL: 'mattkidd2012@gmail.com',
 
   // The org name treated as "the signed-in organizer" in the prototype's organizer
   // dashboard. Once real auth + multi-org is in place this comes from the user's row.

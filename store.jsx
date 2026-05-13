@@ -322,21 +322,23 @@ function useJamStore() {
     },
     // Mark one of MY listings as sold. Doesn't claim a buyer (RLS blocks that
     // for self-marks); the Stripe webhook is the only path that sets sold_to.
+    // Throws on failure so the caller (ListingDetail) can surface a real
+    // error instead of toasting "Marked sold" while the row stayed active.
     markListingSold: async (id) => {
-      if (!window.JR_SUPABASE_READY) return;
+      if (!window.JR_SUPABASE_READY) throw new Error('Sign in to manage listings');
       const { error } = await window.JR_SUPABASE
         .from('gear_listings')
         .update({ status: 'sold', sold_at: new Date().toISOString() })
         .eq('id', id);
-      if (error) console.warn('[markListingSold] failed:', error.message);
+      if (error) throw new Error(error.message);
     },
     withdrawListing: async (id) => {
-      if (!window.JR_SUPABASE_READY) return;
+      if (!window.JR_SUPABASE_READY) throw new Error('Sign in to manage listings');
       const { error } = await window.JR_SUPABASE
         .from('gear_listings')
         .update({ status: 'withdrawn' })
         .eq('id', id);
-      if (error) console.warn('[withdrawListing] failed:', error.message);
+      if (error) throw new Error(error.message);
     },
 
     // Shop posts a new gear deal. Inserts into gear_deals with status='pending'
@@ -368,12 +370,43 @@ function useJamStore() {
         original:     deal.original,
         off_pct:      deal.off_pct,
         reg_link:     deal.reg_link,
-        status:       'pending',           // RLS will reject anything else
+        status:       'pending',
       };
+      // Try INSERT first. If a duplicate (source, external_id) exists, only
+      // a row whose status='pending' is editable (gear_deals_shop_update USING
+      // status='pending') — an already-approved deal must not be silently
+      // demoted back to pending via an upsert. So: insert; on conflict, look
+      // up the existing row and tell the shop owner clearly.
       const { data, error } = await sb.from('gear_deals')
-        .upsert([row], { onConflict: 'source,external_id' })
+        .insert([row])
         .select();
-      if (error) throw new Error(error.message);
+      if (error) {
+        if (error.code === '23505') {  // unique_violation
+          // Existing row — fetch its current status so we can give a real msg.
+          const { data: existing } = await sb.from('gear_deals')
+            .select('status')
+            .eq('source', row.source)
+            .eq('external_id', row.external_id)
+            .maybeSingle();
+          if (existing?.status === 'pending') {
+            // Owner can edit a pending row.
+            const { error: updErr } = await sb.from('gear_deals')
+              .update({ title: row.title, price: row.price, original: row.original, off_pct: row.off_pct, reg_link: row.reg_link, sport: row.sport })
+              .eq('source', row.source)
+              .eq('external_id', row.external_id);
+            if (updErr) throw new Error(updErr.message);
+            window.dispatchEvent(new CustomEvent('jr:toast', { detail: { msg: 'Deal updated' } }));
+            return null;
+          }
+          // Approved / rejected — refuse to silently demote.
+          throw new Error(
+            existing?.status === 'approved'
+              ? 'You already have this deal live. Edit the live one from your dashboard.'
+              : 'This deal was previously declined. Post a new variant.'
+          );
+        }
+        throw new Error(error.message);
+      }
       window.dispatchEvent(new CustomEvent('jr:toast', {
         detail: { msg: 'Deal submitted for review' },
       }));
@@ -382,20 +415,41 @@ function useJamStore() {
     // Verify an organizer — bumps org_verified=true on every event whose
     // org_name matches. Optimistic local update + server write for each
     // affected event. Server-side RLS gates this to admins (events_admin_update).
-    verifyOrg: (orgName) => {
+    verifyOrg: async (orgName) => {
       const user  = userRef.current;
       const state = stateRef.current;
       const targets = state.events.filter(e => e.org === orgName && !e.orgVerified);
+      if (!targets.length) return { ok: true, count: 0 };
+      // Optimistic local update so the UI feels instant.
       setState(s => ({
         ...s,
         events: s.events.map(e => e.org === orgName ? { ...e, orgVerified: true } : e),
       }));
-      if (window.JR_SUPABASE_READY && user) {
-        for (const ev of targets) {
-          editOnServer(ev.id, { org_verified: true, trust_tier: 2 }).catch(err =>
-            console.warn('[JamRadar] verifyOrg server write failed for', ev.id, '·', err.message));
-        }
+      if (!window.JR_SUPABASE_READY || !user) {
+        return { ok: true, count: targets.length, local: true };
       }
+      // Server-side write. Settle all updates, then report. If RLS denies
+      // (caller not in admins table), we revert the optimistic update so the
+      // UI doesn't lie about the server state.
+      const results = await Promise.all(targets.map(ev =>
+        editOnServer(ev.id, { org_verified: true, trust_tier: 2 })
+          .then(() => true)
+          .catch(err => {
+            console.warn('[JamRadar] verifyOrg server write failed for', ev.id, '·', err.message);
+            return false;
+          })
+      ));
+      const wroteAll = results.every(Boolean);
+      if (!wroteAll) {
+        // Revert the optimistic update on any failure — server is the truth.
+        setState(s => ({
+          ...s,
+          events: s.events.map(e =>
+            e.org === orgName ? { ...e, orgVerified: false } : e),
+        }));
+        throw new Error('Not allowed — admins only');
+      }
+      return { ok: true, count: targets.length };
     },
     // Fuzzy dedupe — exposed so CreateEvent can pre-flight check before insert.
     findDuplicates: (candidate) => findDuplicates(candidate, stateRef.current.events),
@@ -543,20 +597,26 @@ async function publishToServer(event, user) {
 async function editOnServer(id, patch) {
   const sb = window.JR_SUPABASE;
   if (!sb) return;
-  // Only write the patched fields, mapped to DB column names.
+  // Whitelist + map to DB column names. Forgetting fields here silently
+  // no-ops the server write — exactly what was happening to verifyOrg
+  // (org_verified + trust_tier were missing, action appeared to work but
+  // the DB never changed).
   const dbPatch = {};
-  if ('title'       in patch) dbPatch.title = patch.title;
-  if ('desc'        in patch) dbPatch.description = patch.desc;
-  if ('description' in patch) dbPatch.description = patch.description;
-  if ('poster'      in patch) dbPatch.poster = patch.poster;
-  if ('cost'        in patch) dbPatch.cost = patch.cost;
-  if ('regLink'     in patch) dbPatch.reg_link = patch.regLink;
-  if ('skill'       in patch) dbPatch.skill_level = patch.skill;
-  if ('when'        in patch) dbPatch.when_text = patch.when;
-  if ('location'    in patch) dbPatch.location = patch.location;
-  if ('status'      in patch) dbPatch.status = patch.status;
-  if ('featured'    in patch) dbPatch.featured = patch.featured;
-  if ('live'        in patch) dbPatch.live = patch.live;
+  if ('title'        in patch) dbPatch.title         = patch.title;
+  if ('desc'         in patch) dbPatch.description   = patch.desc;
+  if ('description'  in patch) dbPatch.description   = patch.description;
+  if ('poster'       in patch) dbPatch.poster        = patch.poster;
+  if ('cost'         in patch) dbPatch.cost          = patch.cost;
+  if ('regLink'      in patch) dbPatch.reg_link      = patch.regLink;
+  if ('skill'        in patch) dbPatch.skill_level   = patch.skill;
+  if ('when'         in patch) dbPatch.when_text     = patch.when;
+  if ('location'     in patch) dbPatch.location      = patch.location;
+  if ('status'       in patch) dbPatch.status        = patch.status;
+  if ('featured'     in patch) dbPatch.featured      = patch.featured;
+  if ('live'         in patch) dbPatch.live          = patch.live;
+  if ('org_verified' in patch) dbPatch.org_verified  = patch.org_verified;
+  if ('trust_tier'   in patch) dbPatch.trust_tier    = patch.trust_tier;
+  if (Object.keys(dbPatch).length === 0) return;   // nothing to write
   const { error } = await sb.from('events').update(dbPatch).eq('id', id);
   if (error) throw error;
 }
