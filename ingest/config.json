@@ -145,7 +145,14 @@
       { "url": "https://www.waterville.com/events",                      "source": "llm:waterville", "org": "Waterville Valley",  "sport": "snowboard", "color": 95,  "default_lat": 43.9520, "default_lon": -71.5050,  "default_distance_km": 380,   "render": false },
       { "url": "https://www.jaypeakresort.com/events/",                  "source": "llm:jaypeak",    "org": "Jay Peak",           "sport": "snowboard", "color": 95,  "default_lat": 44.9319, "default_lon": -72.5319,  "default_distance_km": 200,   "render": false },
       { "url": "https://www.bigbearmountainresort.com/events",           "source": "llm:bigbear",    "org": "Big Bear Mountain",  "sport": "snowboard", "color": 60,  "default_lat": 34.2436, "default_lon": -116.8814, "default_distance_km": 3700,  "render": false },
-      { "url": "https://www.cannonmt.com/events",                        "source": "llm:cannon",     "org": "Cannon Mountain",    "sport": "snowboard", "color": 95,  "default_lat": 44.1725, "default_lon": -71.6942,  "default_distance_km": 350,   "render": true  }
+      { "url": "https://www.cannonmt.com/events",                        "source": "llm:cannon",     "org": "Cannon Mountain",    "sport": "snowboard", "color": 95,  "default_lat": 44.1725, "default_lon": -71.6942,  "default_distance_km": 350,   "render": true  },
+
+      { "url": "https://www.bromontmontagne.com/en/events/",             "source": "llm:bromont",    "org": "Bromont",            "sport": "snowboard", "color": 230, "default_lat": 45.2906, "default_lon": -72.6453,  "default_distance_km": 250,   "render": false },
+      { "url": "https://www.kickinghorseresort.com/events",              "source": "llm:kickinghorse","org": "Kicking Horse",     "sport": "snowboard", "color": 230, "default_lat": 51.2972, "default_lon": -117.0578, "default_distance_km": 3300,  "render": false },
+      { "url": "https://www.skinakiska.com/events",                      "source": "llm:nakiska",    "org": "Nakiska",            "sport": "snowboard", "color": 230, "default_lat": 50.9325, "default_lon": -114.9633, "default_distance_km": 580,   "render": false },
+      { "url": "https://www.alpinex.com/events",                         "source": "llm:alpinex",    "org": "Alpine X",           "sport": "ski",       "color": 60,  "default_lat": null,    "default_lon": null,      "default_distance_km": null,  "render": false },
+      { "url": "https://www.snobahn.com/events",                         "source": "llm:snobahn",    "org": "SNOBAHN",            "sport": "snowboard", "color": 95,  "default_lat": 39.5793, "default_lon": -104.8757, "default_distance_km": 3500,  "render": false },
+      { "url": "https://www.element.com/events",                         "source": "llm:element",    "org": "Element Skateboards","sport": "skate",     "color": 35,  "default_lat": null,    "default_lon": null,      "default_distance_km": null,  "render": false }
     ]
   },
 

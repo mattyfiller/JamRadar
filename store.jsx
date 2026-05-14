@@ -640,6 +640,13 @@ function rowToEvent(row) {
     regLink:      row.reg_link,
     location:     row.location,
     coords:       row.coords,
+    // Numeric lat/lon are the primary geographic fields for scraped events.
+    // The Map screen used to only read the `coords` string (formatted as
+    // "44.5° N · 79.4° W") which the LLM almost never produces, so 95% of
+    // scraped events were invisible on the map. Now we expose both and let
+    // LeafletMap fall back to lat/lon when coords-string is null.
+    lat:          row.lat != null ? Number(row.lat) : null,
+    lon:          row.lon != null ? Number(row.lon) : null,
     distanceKm:   row.distance_km != null ? Number(row.distance_km) : null,
     indoor:       /indoor/i.test(row.type || '') || row.sport === 'indoor',
     going:        row.going_count || 0,

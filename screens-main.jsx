@@ -716,8 +716,26 @@ function MapScreen({ events, prefs, onOpenEvent, savedIds, onSave }) {
     cost: 'all',
   });
 
+  // Same date filter Discover uses — past/null-date events should not pin
+  // the map (auto-archive runs daily but until then, stragglers exist).
+  const now = Date.now();
+  const passedGrace = now - 1 * 24 * 60 * 60 * 1000;
+  const farFuture   = now + 365 * 24 * 60 * 60 * 1000;
+  const isUpcomingMap = (e) => {
+    const iso = e.startsAt || e.starts_at;
+    if (iso) {
+      const t = new Date(iso).getTime();
+      if (Number.isNaN(t)) return false;
+      return t > passedGrace && t < farFuture;
+    }
+    const parsed = whenStringToTime(e.when);
+    if (parsed == null) return false;
+    return parsed > passedGrace && parsed < farFuture;
+  };
+
   const visible = events
     .filter(visibleToRiders)
+    .filter(isUpcomingMap)
     .filter(e => prefs?.sports?.length ? prefs.sports.includes(e.sport) : true)
     .filter(e => !extra.types.length || extra.types.includes(e.type))
     .filter(e => e.distanceKm == null || e.distanceKm <= extra.maxKm)
@@ -890,8 +908,44 @@ function LeafletMap({ events, selectedId, onSelect, onOpenEvent, prefs, radiusKm
     const map = mapRef.current;
     if (!map) return;
     const seen = new Set();
+
+    // First pass: collect raw coords for each event so we can detect overlaps
+    // and spread stacked events around their venue (Killington has 30+ events
+    // all at the same lat/lon — they were invisible as one pin).
+    const eventCoords = new Map();
+    const venueGroups = new Map();
     events.forEach(e => {
-      const c = parseCoords(e.coords);
+      let c = null;
+      if (Number.isFinite(e.lat) && Number.isFinite(e.lon)) {
+        c = [e.lat, e.lon];
+      } else if (e.coords) {
+        c = parseCoords(e.coords);
+      }
+      if (!c) return;
+      eventCoords.set(e.id, c);
+      const key = c[0].toFixed(3) + ',' + c[1].toFixed(3);  // ~100m bucket
+      if (!venueGroups.has(key)) venueGroups.set(key, []);
+      venueGroups.get(key).push(e.id);
+    });
+
+    // For each venue with >1 event, distribute the markers in a circle.
+    // Roughly 0.0015° ≈ 165m at lat 45 — visually distinct, geographically tight.
+    const offsetPositions = new Map();
+    venueGroups.forEach(ids => {
+      if (ids.length === 1) {
+        offsetPositions.set(ids[0], eventCoords.get(ids[0]));
+        return;
+      }
+      const center = eventCoords.get(ids[0]);
+      ids.forEach((id, i) => {
+        const angle = (2 * Math.PI * i) / ids.length;
+        const r = 0.0015 + 0.0008 * Math.floor(i / 10);
+        offsetPositions.set(id, [center[0] + r * Math.sin(angle), center[1] + r * Math.cos(angle)]);
+      });
+    });
+
+    events.forEach(e => {
+      const c = offsetPositions.get(e.id);
       if (!c) return;
       seen.add(e.id);
       const isSel = e.id === selectedId;
