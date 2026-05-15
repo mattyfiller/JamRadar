@@ -3,7 +3,7 @@
 // stale-while-revalidate for CDN scripts (React, Babel, Leaflet, fonts, tiles);
 // network-first navigation fallback so HTML updates aren't pinned forever.
 
-const VERSION   = 'jamradar-v28';
+const VERSION   = 'jamradar-v29';
 const CACHE     = `${VERSION}-shell`;
 const RUNTIME   = `${VERSION}-runtime`;
 

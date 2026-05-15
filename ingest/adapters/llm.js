@@ -77,6 +77,13 @@ async function extractFrom(url, meta, { provider, apiKey, model }) {
     return [];
   }
   const $ = cheerio.load(html);
+
+  // Pluck the page hero before we strip everything — most resorts surface
+  // a high-quality og:image (their hero photo or logo) which becomes the
+  // default poster for every event from that source. Cards previously
+  // rendered as sport-color gradients only; the hero gives them identity.
+  const pageHeroImage = extractHeroImage($, url);
+
   $('script, style, nav, footer, header, aside, form').remove();
   let body = $('main, article, [class*="event"], body').first().text();
   body = body.replace(/\s+/g, ' ').trim();
@@ -103,9 +110,48 @@ async function extractFrom(url, meta, { provider, apiKey, model }) {
     return [];
   }
   if (!Array.isArray(events)) return [];
-  console.info(`[llm] ${url} → ${events.length} events extracted`);
-  return events.map(e => normalizeLLMEvent(e, url, meta));
+  console.info(`[llm] ${url} → ${events.length} events extracted${pageHeroImage ? ' (with hero image)' : ''}`);
+  return events.map(e => normalizeLLMEvent(e, url, meta, pageHeroImage));
 }
+
+// Find the best representative image for the page. Priority:
+//   1. ORG_HERO_IMAGES manual override (curated photos for top resorts)
+//   2. og:image (set by every reasonable CMS, points to the page hero)
+//   3. twitter:image
+//   4. First large <img> in <main> or <article>
+// Returns absolute URL or null.
+function extractHeroImage($, baseUrl) {
+  // Manual override wins — for resorts where the og:image is a generic logo
+  // we'd rather show a curated action shot.
+  const host = (() => { try { return new URL(baseUrl).hostname.replace(/^www\./, ''); } catch { return ''; } })();
+  if (ORG_HERO_IMAGES[host]) return ORG_HERO_IMAGES[host];
+
+  const og = $('meta[property="og:image"], meta[name="og:image"]').attr('content');
+  if (og && /^https?:/.test(og)) return og;
+
+  const tw = $('meta[name="twitter:image"], meta[property="twitter:image"]').attr('content');
+  if (tw && /^https?:/.test(tw)) return tw;
+
+  // Fallback: first reasonably-large image in the content area.
+  const $img = $('main img[src], article img[src]').first();
+  if ($img.length) {
+    const src = $img.attr('src');
+    if (src && !src.startsWith('data:')) {
+      try { return new URL(src, baseUrl).toString(); } catch { /* noop */ }
+    }
+  }
+  return null;
+}
+
+// Hand-curated hero images for the top resorts. Used when their og:image
+// is missing or shows a generic logo. Add new entries here whenever a
+// resort's auto-extracted hero looks weak in the app.
+// Wikimedia Commons URLs are stable and CC-licensed; safe to hotlink.
+const ORG_HERO_IMAGES = {
+  // Empty by default — populated as we audit each resort's auto-extracted
+  // hero. Adding an entry here forces the override even when the og:image
+  // would have worked, so be deliberate.
+};
 
 // Walk forward from the first `[` and return the substring that ends at the
 // matching `]`. Handles prose before/after, code fences, and quoted strings
@@ -184,7 +230,7 @@ async function callOpenRouter(apiKey, model, body, url) {
   return json.choices?.[0]?.message?.content || '';
 }
 
-function normalizeLLMEvent(e, url, meta) {
+function normalizeLLMEvent(e, url, meta, pageHeroImage = null) {
   const start = e.date ? new Date(e.date) : null;
   // Config-driven sources (meta.org set) come from a hand-curated resort
   // events page — bump trust to tier 1 so the index pipeline auto-approves
@@ -196,7 +242,10 @@ function normalizeLLMEvent(e, url, meta) {
     trust_tier:   isCurated ? 1 : 0,
     title:        e.title || 'Untitled event',
     description:  e.description || '',
-    poster:       null,
+    // Hero image extracted from the source page (og:image + ORG_HERO_IMAGES
+    // override). Every event from a given resort URL gets the same poster
+    // — good enough until we wire per-event LLM image extraction.
+    poster:       pageHeroImage || null,
     org_name:     meta.org || hostname(url),
     org_verified: meta.verified ?? false,
     sport:        e.sport || meta.sport || 'snowboard',

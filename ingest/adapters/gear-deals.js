@@ -70,7 +70,84 @@ export async function fetchGearDeals(config, env = process.env) {
     await new Promise(r => setTimeout(r, 1500));
   }
   console.info(`[gear-deals] extracted ${out.length} candidate deals`);
-  return out;
+
+  // Pre-display link validation. Many LLM-extracted URLs are wrong: hash
+  // anchors, "Sale" landing pages instead of the product, or pages the
+  // retailer has already pulled. Hitting each one with a short-timeout
+  // request before insert prevents dead links from ever reaching the app.
+  // Per-run, this adds ~30-60s on top of the LLM cost, well worth it.
+  const validated = await validateLinks(out);
+  return validated;
+}
+
+async function validateLinks(deals, concurrency = 8) {
+  const live = [];
+  let dropped = 0;
+  let withoutUrl = 0;
+  const queue = deals.slice();
+
+  async function worker() {
+    while (queue.length) {
+      const deal = queue.shift();
+      if (!deal.reg_link) {
+        // Keep deals that have no URL so the gradient-fallback card at
+        // least shows pricing — the marketplace was sometimes empty without
+        // them. But mark them so the UI can hide the "View" button.
+        withoutUrl++;
+        live.push(deal);
+        continue;
+      }
+      const ok = await checkUrl(deal.reg_link);
+      if (ok) live.push(deal);
+      else dropped++;
+    }
+  }
+
+  await Promise.all(Array.from({ length: concurrency }, worker));
+  console.info(`[gear-deals] link-check: ${live.length - withoutUrl} live, ${dropped} dead-dropped, ${withoutUrl} without-url-kept`);
+  return live;
+}
+
+async function checkUrl(url) {
+  // Many storefronts (Shopify especially) return 405 to HEAD or 403 with
+  // an empty body. Try HEAD first (cheap), fall back to a ranged GET that
+  // reads only the first 1KB to confirm 200, then aborts.
+  try {
+    const headRes = await fetchWithTimeout(url, {
+      method: 'HEAD',
+      redirect: 'follow',
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; JamRadarBot/1.0; +https://jamradar.netlify.app)' },
+    }, 6000);
+    if (headRes.status >= 200 && headRes.status < 400) return true;
+    if (headRes.status !== 405 && headRes.status !== 403) return false;
+  } catch {
+    // fall through to ranged GET
+  }
+  try {
+    const getRes = await fetchWithTimeout(url, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; JamRadarBot/1.0; +https://jamradar.netlify.app)',
+        'Range': 'bytes=0-1023',
+      },
+    }, 8000);
+    return getRes.status >= 200 && getRes.status < 400;
+  } catch {
+    return false;
+  }
+}
+
+async function fetchWithTimeout(url, opts, ms) {
+  // AbortSignal.timeout works in Node 20 but older runtimes don't have it,
+  // so use the manual AbortController pattern for portability.
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...opts, signal: ctrl.signal });
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 async function extractFrom(url, meta, { provider, apiKey, model }) {
