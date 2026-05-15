@@ -136,7 +136,26 @@ async function runPipeline(sb, env, t0) {
   // Gear deals — own table, own write path, own dedupe key.
   let dealsWritten = 0, dealsFailed = 0;
   if (config.gear_deals?.enabled) {
-    const deals = await fetchGearDeals(config.gear_deals);
+    const rawDeals = await fetchGearDeals(config.gear_deals);
+
+    // Intra-run dedupe — the LLM occasionally returns the same product twice
+    // from one page (size/color variants the normalizer can't distinguish),
+    // or two pages from the same shop emit colliding stable_ids. Postgres
+    // refuses to UPDATE the same row twice in one INSERT, so a single dupe
+    // would sink the whole batch. Keep the first occurrence per
+    // (source, external_id) and drop the rest.
+    const seenDeals = new Set();
+    const deals = [];
+    for (const d of rawDeals) {
+      const key = `${d.source}::${d.external_id || ''}`;
+      if (d.external_id && seenDeals.has(key)) continue;
+      if (d.external_id) seenDeals.add(key);
+      deals.push(d);
+    }
+    if (deals.length !== rawDeals.length) {
+      console.info(`[ingest] gear_deals: dropped ${rawDeals.length - deals.length} intra-run duplicates`);
+    }
+
     if (deals.length && !DRY_RUN) {
       const BATCH = 50;
       for (let i = 0; i < deals.length; i += BATCH) {
@@ -145,8 +164,15 @@ async function runPipeline(sb, env, t0) {
           onConflict: 'source,external_id',
         });
         if (error) {
-          console.warn(`[ingest] gear_deals batch ${i} failed: ${error.message}`);
-          dealsFailed += chunk.length;
+          console.warn(`[ingest] gear_deals batch ${i} failed: ${error.message} — salvaging per row`);
+          // Per-row salvage: one collision shouldn't kill 49 good rows.
+          for (const row of chunk) {
+            const { error: rowErr } = await sb.from('gear_deals').upsert([row], {
+              onConflict: 'source,external_id',
+            });
+            if (rowErr) dealsFailed++;
+            else dealsWritten++;
+          }
         } else {
           dealsWritten += chunk.length;
         }

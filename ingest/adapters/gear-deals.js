@@ -98,20 +98,12 @@ async function extractFrom(url, meta, { provider, apiKey, model }) {
     if (/^(sort|filter|login|sign in|cart|wishlist|account|menu|search|view all|see more|next|previous)$/i.test(text)) return;
     if (/#$|^javascript:|^mailto:|^tel:/i.test(href)) return;
     const abs = absoluteUrl(href, url);
-    // Pull a product image out of the anchor (first <img src> or data-src
-    // inside it). Many product cards wrap an <img> inside the anchor — this
-    // gives the LLM both the URL and the image hint, so cards get real
-    // product photos instead of gradient fallbacks.
-    let imgUrl = '';
-    const $img = $a.find('img').first();
-    if ($img.length) {
-      const src = $img.attr('src') || $img.attr('data-src') || $img.attr('data-srcset') || '';
-      // For srcset, take the first url before any space/comma.
-      const firstSrc = src.split(/[,\s]/)[0];
-      if (firstSrc && !firstSrc.startsWith('data:')) {
-        imgUrl = absoluteUrl(firstSrc, url);
-      }
-    }
+    // Look for a product image. Anchors that wrap the whole product card
+    // (Shopify) have the <img> inside; others (React/Next product grids)
+    // put it in a sibling <img> or <picture>, or use CSS background-image
+    // on a div. Walk three places: inside the anchor, the anchor's parent
+    // (covers the sibling-picture pattern), and the anchor's first child.
+    const imgUrl = findImageNear($a, url);
     const imgTag = imgUrl ? ` [IMG:${imgUrl}]` : '';
     $a.replaceWith(` ${text} [${abs}]${imgTag} `);
   });
@@ -228,7 +220,7 @@ function normalize(d, sourceUrl, meta) {
     ? absoluteUrl(d.image, sourceUrl)
     : null;
   return {
-    external_id: stableId(meta.source || `deals:${hostname(sourceUrl)}`, title, price),
+    external_id: stableId(meta.source || `deals:${hostname(sourceUrl)}`, title, price, url),
     source:      meta.source || `deals:${hostname(sourceUrl)}`,
     title,
     shop:        meta.shop || hostname(sourceUrl),
@@ -270,6 +262,63 @@ function extractFirstJsonArray(s) {
   return null;
 }
 
+// Walk anchor + its parent looking for an actual product image. Different
+// shops attach the image differently: inside the anchor (Shopify),
+// as a sibling <picture> (React grids), inside a srcset, or as a CSS
+// background-image. We try several attribute spellings because lazy-load
+// libraries swap them at runtime — by the time Playwright dumps the DOM
+// the live `src` may be a placeholder GIF and the real URL is in
+// `data-src` / `data-original` / `srcset`.
+function findImageNear($a, baseUrl) {
+  // Try inside the anchor first, then climb to the parent (covers the
+  // common "anchor for the title + sibling figure for the image" pattern).
+  const $scopes = [$a, $a.parent()];
+  for (const $scope of $scopes) {
+    if (!$scope || $scope.length === 0) continue;
+
+    // 1. <img> with any of the common src attributes.
+    const $img = $scope.find('img').first();
+    if ($img.length) {
+      const candidates = [
+        $img.attr('src'),
+        $img.attr('data-src'),
+        $img.attr('data-srcset'),
+        $img.attr('srcset'),
+        $img.attr('data-original'),
+        $img.attr('data-lazy-src'),
+        $img.attr('data-image'),
+      ].filter(Boolean);
+      for (const candidate of candidates) {
+        const firstSrc = candidate.split(/[,\s]/)[0];
+        if (firstSrc && !firstSrc.startsWith('data:')) {
+          return absoluteUrl(firstSrc, baseUrl);
+        }
+      }
+    }
+
+    // 2. <picture><source srcset="..."> — common on Patagonia / Arc'teryx.
+    const $source = $scope.find('source[srcset], source[data-srcset]').first();
+    if ($source.length) {
+      const srcset = $source.attr('srcset') || $source.attr('data-srcset') || '';
+      const firstSrc = srcset.split(/[,\s]/)[0];
+      if (firstSrc && !firstSrc.startsWith('data:')) {
+        return absoluteUrl(firstSrc, baseUrl);
+      }
+    }
+
+    // 3. CSS background-image on the anchor or descendant. Many React product
+    // grids render the photo as a styled div, not an <img>.
+    const $styled = $scope.find('[style*="background-image"]').first();
+    const $check = $styled.length ? $styled : $scope;
+    const style = $check.attr('style') || '';
+    const m = style.match(/background(?:-image)?\s*:\s*url\(["']?([^"')]+)["']?\)/i);
+    if (m && m[1] && !m[1].startsWith('data:')) {
+      return absoluteUrl(m[1], baseUrl);
+    }
+  }
+  return '';
+}
+
 function absoluteUrl(href, base) {
   if (!href) return null;
   try { return new URL(href, base).toString(); }
@@ -279,13 +328,20 @@ function hostname(url) {
   try { return new URL(url).hostname.replace(/^www\./, ''); }
   catch { return 'unknown'; }
 }
-function stableId(prefix, title, price) {
+function stableId(prefix, title, price, url) {
   // Normalize so casing / punctuation drift between runs doesn't create
   // duplicate rows of the same product. Price is folded in so a stale-price
   // re-extraction lands as a new row instead of silently mutating a good one.
+  // URL path is folded in so size/color variants of the same product
+  // (which the LLM often returns with identical titles + prices) don't
+  // collide on the (source, external_id) unique constraint and crash the
+  // upsert with "ON CONFLICT DO UPDATE command cannot affect row a second
+  // time."
   const t = String(title || '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
   const p = Number.isFinite(price) ? Math.round(price * 100) : 0; // cents → integer
-  const key = `${t}|${p}`;
+  let urlPath = '';
+  try { urlPath = url ? new URL(url).pathname : ''; } catch { urlPath = String(url || ''); }
+  const key = `${t}|${p}|${urlPath}`;
   let h = 0;
   for (let i = 0; i < key.length; i++) h = ((h << 5) - h) + key.charCodeAt(i);
   return `${prefix}::${(h >>> 0).toString(36)}`;
