@@ -179,6 +179,14 @@ async function runPipeline(sb, env, t0) {
       }
     }
     console.info(`[ingest] gear deals: ${dealsWritten} written, ${dealsFailed} failed`);
+
+    // Stale-link sweep — the per-deal link checker in gear-deals.js only
+    // validates URLs at insert time. Old rows can rot (a v25-era Tactics
+    // SKU sells out and the URL 404s) and there's no other GC. Sweep the
+    // existing approved rows in batches; demote anything that 404s.
+    // Bounded to 200 rows per run so we don't budget-bust on a fresh
+    // 800-row table; over a few days the whole table gets scanned.
+    if (!DRY_RUN) await sweepStaleGearLinks(sb);
   }
 
   // 4. Classify each candidate: insert / update / queue-merge / skip.
@@ -287,6 +295,92 @@ async function runPipeline(sb, env, t0) {
 
   const dt = ((Date.now() - t0) / 1000).toFixed(1);
   console.info(`[ingest] done in ${dt}s — written ${actualInserted}, failed ${actualFailed}, queued ${queued}, skipped ${skipped}`);
+}
+
+// Sweep existing gear_deals rows for dead links. Demotes (status=archived)
+// instead of deleting so admins can audit / restore. Bounded so the sweep
+// doesn't dominate ingest time — rotates through the oldest-checked rows
+// every run via order by updated_at asc.
+async function sweepStaleGearLinks(sb, max = 200, concurrency = 8) {
+  const { data: rows, error } = await sb
+    .from('gear_deals')
+    .select('id, reg_link, updated_at')
+    .eq('status', 'approved')
+    .not('reg_link', 'is', null)
+    .order('updated_at', { ascending: true })
+    .limit(max);
+  if (error) {
+    console.warn(`[sweep] gear_deals load failed: ${error.message}`);
+    return;
+  }
+  if (!rows || rows.length === 0) {
+    console.info('[sweep] no gear_deals rows to check');
+    return;
+  }
+
+  const queue = rows.slice();
+  const dead = [];
+
+  async function worker() {
+    while (queue.length) {
+      const row = queue.shift();
+      const ok = await checkUrlForSweep(row.reg_link);
+      if (!ok) dead.push(row.id);
+    }
+  }
+
+  await Promise.all(Array.from({ length: concurrency }, worker));
+
+  if (dead.length === 0) {
+    console.info(`[sweep] ${rows.length} gear_deals checked, all live`);
+    return;
+  }
+
+  // Bulk archive — Postgres in() supports the whole list at once.
+  const { error: updErr } = await sb
+    .from('gear_deals')
+    .update({ status: 'archived' })
+    .in('id', dead);
+  if (updErr) {
+    console.warn(`[sweep] archive failed: ${updErr.message}`);
+  } else {
+    console.info(`[sweep] ${rows.length} gear_deals checked, ${dead.length} archived (dead links)`);
+  }
+
+  // Also touch updated_at on the surviving rows so the next sweep moves on
+  // to older candidates. Without this the sweep rechecks the same 200 rows
+  // every run forever.
+  const live = rows.map(r => r.id).filter(id => !dead.includes(id));
+  if (live.length) {
+    await sb.from('gear_deals').update({ updated_at: new Date().toISOString() }).in('id', live);
+  }
+}
+
+// Stripped-down version of the gear-deals.js checker (can't easily import
+// from an adapter due to ESM circularity here). Same HEAD-then-ranged-GET
+// pattern, same timeouts. Returns true if the URL responds 2xx-3xx.
+async function checkUrlForSweep(url) {
+  const ua = 'Mozilla/5.0 (compatible; JamRadarBot/1.0; +https://jamradar.netlify.app)';
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 6000);
+    const r = await fetch(url, { method: 'HEAD', redirect: 'follow', headers: { 'User-Agent': ua }, signal: ctrl.signal });
+    clearTimeout(t);
+    if (r.status >= 200 && r.status < 400) return true;
+    if (r.status !== 405 && r.status !== 403) return false;
+  } catch { /* fall through */ }
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 8000);
+    const r = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: { 'User-Agent': ua, 'Range': 'bytes=0-1023' },
+      signal: ctrl.signal,
+    });
+    clearTimeout(t);
+    return r.status >= 200 && r.status < 400;
+  } catch { return false; }
 }
 
 main().catch((err) => {

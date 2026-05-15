@@ -221,8 +221,12 @@ async function extractFrom(url, meta, { provider, apiKey, model }) {
   // 3. Parse — extract first balanced JSON array, ignoring any prose before/after.
   const arrText = extractFirstJsonArray(text);
   if (!arrText) {
-    // Treat "no array found" the same as an empty result; the LLM often returns
-    // something like "```json\n[]\n```\n\nNo products visible." for blocked pages.
+    // The LLM returned prose with no JSON array — typically happens when the
+    // body is mostly navigation chrome (page loaded but the product grid was
+    // server-only / behind auth / blocked by a cookie wall). Log the first
+    // 200 chars of the response so silent regressions on Tactics / Lasthunt
+    // / Jenson don't sit undetected for weeks.
+    console.warn(`[gear-deals] ${url} → no JSON in LLM response: ${text.slice(0, 200).replace(/\s+/g, ' ').trim()}`);
     return [];
   }
   let deals;
