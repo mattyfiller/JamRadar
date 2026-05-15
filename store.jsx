@@ -904,7 +904,8 @@ async function fetchGearDeals() {
       sport:      d.sport || 'snowboard',
       distanceKm: null,                // unknown without geocoding the shop
       sponsored:  false,
-      reg_link:   d.reg_link || null,  // GearCard can use this for an outbound click
+      reg_link:   d.reg_link || null,  // GearCard wraps card in <a> when present
+      poster:     d.poster || null,    // product image — GearCard renders cover-bg
       _real:      true,
     }));
   } catch (e) {

@@ -167,7 +167,15 @@
       { "url": "https://www.thelasthunt.com/collections/skateboarding", "source": "deals:lasthunt:skate",     "shop": "thelasthunt.com",   "sport": "skate",     "render": true },
       { "url": "https://www.thelasthunt.com/collections/cycling-on-sale","source": "deals:lasthunt:mtb",      "shop": "thelasthunt.com",   "sport": "mtb",       "render": true },
       { "url": "https://www.jensonusa.com/Sale",                        "source": "deals:jenson:mtb",         "shop": "jensonusa.com",     "sport": "mtb",       "render": true },
-      { "url": "https://www.ccs.com/sale",                              "source": "deals:ccs:sale",           "shop": "ccs.com",           "sport": "skate",     "render": true }
+      { "url": "https://www.ccs.com/sale",                              "source": "deals:ccs:sale",           "shop": "ccs.com",           "sport": "skate",     "render": true },
+
+      { "url": "https://www.burton.com/us/en/sale.html",                "source": "deals:burton:sale",        "shop": "burton.com",        "sport": "snowboard", "render": true },
+      { "url": "https://www.dcshoes.com/sale/",                         "source": "deals:dc:sale",            "shop": "dcshoes.com",       "sport": "skate",     "render": true },
+      { "url": "https://www.nixon.com/en_us/sale.html",                 "source": "deals:nixon:sale",         "shop": "nixon.com",         "sport": "skate",     "render": true },
+      { "url": "https://www.dakine.com/collections/sale",               "source": "deals:dakine:sale",        "shop": "dakine.com",        "sport": "snowboard", "render": true },
+      { "url": "https://www.norrona.com/en-us/sale/",                   "source": "deals:norrona:sale",       "shop": "norrona.com",       "sport": "ski",       "render": true },
+      { "url": "https://www.patagonia.com/shop/web-specials",           "source": "deals:patagonia:sale",     "shop": "patagonia.com",     "sport": "snowboard", "render": true },
+      { "url": "https://www.arcteryx.com/us/en/c/outlet",               "source": "deals:arcteryx:outlet",    "shop": "arcteryx.com",      "sport": "ski",       "render": true }
     ]
   }
 }

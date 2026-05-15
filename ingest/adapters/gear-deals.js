@@ -34,9 +34,10 @@ const SYSTEM_PROMPT = `You extract gear deals from shop sale pages. Given the vi
 - price (number, current sale price in dollars; null if unknown)
 - original (number, regular price in dollars before discount; null if unknown)
 - url (absolute URL of the product page — look for URLs in [brackets] adjacent to product titles in the input text; null if no bracketed URL is near the product)
+- image (absolute URL of the product photo — look for URLs in [IMG:...] tags adjacent to the product; null if none nearby)
 - sport (one of: "snowboard","ski","skate","mtb","bmx" — guess from product name and category)
 
-The page text contains URLs in square brackets right after each linkable element (e.g. "Burton Custom 158 [https://shop.com/burton-custom-158]"). Match each product to the URL bracketed nearest its title.
+The page text contains URLs in square brackets right after each linkable element (e.g. "Burton Custom 158 [https://shop.com/burton-custom-158] [IMG:https://cdn.shop.com/burton-custom-158.jpg]"). Match each product to the URL + image bracketed nearest its title.
 
 Only include items that are clearly on sale (have a discount or "sale" indicator). Skip non-sale items, navigation, accessories like screws/wax unless they're a real listed deal. Return up to 30 items max. Return ONLY a JSON array. No prose, no markdown.`;
 
@@ -94,14 +95,25 @@ async function extractFrom(url, meta, { provider, apiKey, model }) {
     const href = $a.attr('href') || '';
     const text = $a.text().replace(/\s+/g, ' ').trim();
     if (!text || text.length > 120) return;
-    // Skip obvious non-product links (sort/filter/login/cart).
     if (/^(sort|filter|login|sign in|cart|wishlist|account|menu|search|view all|see more|next|previous)$/i.test(text)) return;
     if (/#$|^javascript:|^mailto:|^tel:/i.test(href)) return;
     const abs = absoluteUrl(href, url);
-    // Replace the anchor's content with `text [URL]` so the LLM sees the URL
-    // adjacent to the title and can extract it. Markdown-style is concise
-    // and the LLM is trained on it.
-    $a.replaceWith(` ${text} [${abs}] `);
+    // Pull a product image out of the anchor (first <img src> or data-src
+    // inside it). Many product cards wrap an <img> inside the anchor — this
+    // gives the LLM both the URL and the image hint, so cards get real
+    // product photos instead of gradient fallbacks.
+    let imgUrl = '';
+    const $img = $a.find('img').first();
+    if ($img.length) {
+      const src = $img.attr('src') || $img.attr('data-src') || $img.attr('data-srcset') || '';
+      // For srcset, take the first url before any space/comma.
+      const firstSrc = src.split(/[,\s]/)[0];
+      if (firstSrc && !firstSrc.startsWith('data:')) {
+        imgUrl = absoluteUrl(firstSrc, url);
+      }
+    }
+    const imgTag = imgUrl ? ` [IMG:${imgUrl}]` : '';
+    $a.replaceWith(` ${text} [${abs}]${imgTag} `);
   });
 
   // Try a few candidate containers and keep the LONGEST match — different
@@ -210,10 +222,12 @@ function normalize(d, sourceUrl, meta) {
     ? Math.round((1 - price / original) * 100)
     : null;
   const url = absoluteUrl(d.url, sourceUrl);
+  // Image URL the LLM extracted from the [IMG:url] tag in the body. Must be
+  // an http(s) URL, not a data: URL or relative path.
+  const image = (typeof d.image === 'string' && /^https?:\/\//i.test(d.image))
+    ? absoluteUrl(d.image, sourceUrl)
+    : null;
   return {
-    // Hash includes price so a stale or hallucinated price from a future LLM
-    // run doesn't silently overwrite the correct row. A genuine price drop
-    // produces a new row + the old one stays as a record. Acceptable.
     external_id: stableId(meta.source || `deals:${hostname(sourceUrl)}`, title, price),
     source:      meta.source || `deals:${hostname(sourceUrl)}`,
     title,
@@ -222,7 +236,7 @@ function normalize(d, sourceUrl, meta) {
     price,
     original:    Number.isFinite(original) ? original : null,
     off_pct:     offPct,
-    poster:      null,
+    poster:      image,                 // product photo when available; gradient fallback otherwise
     reg_link:    url,
     // Scraped from public sale pages — safe to auto-approve so the rider-side
     // Gear tab can read them via the gear_deals_public_read RLS policy.

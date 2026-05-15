@@ -1485,7 +1485,11 @@ function GearCard({ deal }) {
     }}>
       <div className="poster-ph" style={{
         height: 90, position: 'relative',
-        background: `linear-gradient(135deg, oklch(0.32 0.03 ${deal.sport === 'snowboard' ? 230 : 60}) 0%, oklch(0.20 0.02 240) 100%)`,
+        // Use the LLM-extracted product image when present; gradient fallback
+        // otherwise. Same pattern as GearHero.
+        background: deal.poster
+          ? `center/cover no-repeat url(${deal.poster})`
+          : `linear-gradient(135deg, oklch(0.32 0.03 ${deal.sport === 'snowboard' ? 230 : 60}) 0%, oklch(0.20 0.02 240) 100%)`,
       }}>
         <div style={{
           position: 'absolute', top: 8, right: 8,
